@@ -1,0 +1,211 @@
+
+//section for calling the other gorm templates
+{{define "gorm"}}
+//Generated with gorm/gorm-interface.go.tmpl
+    {{template "gorm-interface" .}}
+    {{template "gorm-impl" .}}
+
+{{end}}
+
+
+//gorm template for making the interface that will be used.
+{{define "gorm-interface"}}
+    type GormInterface interface {
+    {{range .Types}}
+        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
+            //Generate gorm stuff for {{.TypeName}}
+            Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}) (err error)
+            Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}) (data *{{.TypeName}}, err error)
+            Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}) (err error)
+            Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}) (err error)
+        {{end}}
+    {{end}}
+    }
+
+{{end}}
+
+
+//gorm template for creating the implementation to the interface functions defined above.
+{{define "gorm-impl"}}
+    type Logger interface {
+        Errorf(message string, args ...interface{})
+        Warnf(message string, args ...interface{})
+        Infof(message string, args ...interface{})
+        Debugf(message string, args ...interface{})
+    }
+    var _ GormInterface = (*GormImpl)(nil)
+    type GormImpl struct {
+        DB     *gorm.DB
+        Logger Logger
+        Tracer trace.Tracer
+    }
+
+    {{range .Types}}
+        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
+            //Create a new {{.TypeName}}. No data validation is done.
+            func (g *GormImpl)Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}) (err error) {
+                ctx, span := g.Tracer.Start(ctx, "Create{{.TypeName}}")
+                defer span.End()
+                defer func(span trace.Span) {
+                    if err != nil {
+                        if _, ok := err.(circuit.SimpleBadRequest); !ok {
+                            span.SetStatus(codes.Error, err.Error())
+                            span.RecordError(err)
+                        }
+                    }
+                }(span)
+
+                {{if gt (len (dig "validation" "createKeys"  (list) $dat )) 0 }}
+                    v := validator.New()
+                    v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
+                    err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "createKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
+                    if err != nil {
+                        return circuit.SimpleBadRequest{
+                            Err: fmt.Errorf("validation error: %w", err),
+                        }
+                    }
+                {{end}}
+
+                // Do gorm request: Create the {{.TypeName}}
+                err = g.DB.WithContext(ctx).
+                    Model({{.TypeName}}{}).
+                    Create(&data).Error
+                // Check for gorm error.
+                if err != nil {
+                    return fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
+                }
+                return nil
+            }
+            //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
+            func (g *GormImpl)Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}) (data *{{.TypeName}}, err error) {
+                ctx, span := g.Tracer.Start(ctx, "Get{{.TypeName}}")
+                defer span.End()
+                defer func(span trace.Span) {
+                    if err != nil {
+                        if _, ok := err.(circuit.SimpleBadRequest); !ok {
+                            span.SetStatus(codes.Error, err.Error())
+                            span.RecordError(err)
+                        }
+                    }
+                }(span)
+
+                {{if gt (len (dig "validation" "getKeys"  (list) $dat )) 0 }}
+                    v := validator.New()
+                    v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
+                    err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "getKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
+                    if err != nil {
+                        return circuit.SimpleBadRequest{
+                            Err: fmt.Errorf("validation error: %w", err),
+                        }
+                    }
+                {{end}}
+
+                // Do gorm request: Get the {{.TypeName}}
+                data = new({{.TypeName}})
+                err = g.DB.WithContext(ctx).
+                    Model(&{{.TypeName}}{}).
+                    Where(&filter).
+                    Find(data).Error
+                // Check for gorm error.
+                if err != nil {
+                    if errors.Is(err, gorm.ErrRecordNotFound) {
+                        return nil, nil
+                    }
+                    return nil, fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
+                }
+                return data, nil
+            }
+            func (g *GormImpl)Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}) (err error) {
+                ctx, span := g.Tracer.Start(ctx, "Update{{.TypeName}}")
+                defer span.End()
+                defer func(span trace.Span) {
+                    if err != nil {
+                        if _, ok := err.(circuit.SimpleBadRequest); !ok {
+                            span.SetStatus(codes.Error, err.Error())
+                            span.RecordError(err)
+                        }
+                    }
+                }(span)
+                {{if gt (len (dig "validation" "updateKeys"  (list) $dat )) 0 }}
+                    v := validator.New()
+                    v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
+                    err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "updateKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
+                    if err != nil {
+                        return circuit.SimpleBadRequest{
+                            Err: fmt.Errorf("validation error: %w", err),
+                        }
+                    }
+                {{end}}
+
+                // Verify update request has required key ammount.
+                if len(keys) <= 0 {
+                    return circuit.SimpleBadRequest{
+                        Err: fmt.Errorf("at least one key required to update"),
+                    }
+                }
+                // Identify which values to update.
+                selects := make([]any, len(keys))
+                for i, v := range keys {
+                    selects[i] = g.DB.NamingStrategy.ColumnName("", v)
+                }
+
+                // Do gorm request: Update the record where universeUUID and characterUUID match.
+                err = g.DB.WithContext(ctx).
+                    Model(&{{.TypeName}}{}).
+                    Omit(
+                        {{range get $dat "updateIgnore"}}
+                        "{{.}}",
+                        {{end}}
+                        
+                    ).
+                    //automatically update anything that we pass in the requested fields for.
+                    Select(selects[0], selects[1:]...).
+                    Where(&filter).
+                    Updates(&data).Error
+
+                // Check for gorm error.
+                if err != nil {
+                    return fmt.Errorf("error updating {{.TypeName}} in gorm: %w", err)
+                }
+                // Return nil on success.
+                return nil
+            }
+            //Delete{{.TypeName}} deletes all data matching the supplied filter.
+            func (g *GormImpl)Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}) (err error) {
+                ctx, span := g.Tracer.Start(ctx, "Delete{{.TypeName}}")
+                defer span.End()
+                defer func(span trace.Span) {
+                    if err != nil {
+                        if _, ok := err.(circuit.SimpleBadRequest); !ok {
+                            span.SetStatus(codes.Error, err.Error())
+                            span.RecordError(err)
+                        }
+                    }
+                }(span)
+
+                {{if gt (len (dig "validation" "deleteKeys"  (list) $dat )) 0 }}
+                    v := validator.New()
+                    v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
+                    err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "deleteKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
+                    if err != nil {
+                        return circuit.SimpleBadRequest{
+                            Err: fmt.Errorf("validation error: %w", err),
+                        }
+                    }
+                {{end}}
+                // Do gorm request: Get the {{.TypeName}}
+                err = g.DB.WithContext(ctx).
+                    Model(&{{.TypeName}}{}).
+                    Where(&filter).
+                    Delete(&{{.TypeName}}{}).Error
+                // Check for gorm error.
+                if err != nil {
+                    return fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
+                }
+                return nil
+            }
+        {{end}}
+    {{end}}
+{{end}}

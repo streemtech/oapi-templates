@@ -1,22 +1,46 @@
 //Generated with strict-echo.tmpl
 
+type StrictOption func(*strictHandler)
+
 type StrictHandlerFunc func(ctx echo.Context, args interface{}) (interface{}, error)
 
 type StrictMiddlewareFunc func(f StrictHandlerFunc, operationID string) StrictHandlerFunc
 
-func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc) ServerInterface {
-    return &strictHandler{ssi: ssi, middlewares: middlewares}
+func NewStrictHandler(ssi StrictServerInterface, opts ...StrictOption) ServerInterface {
+	handler := &strictHandler{ssi: ssi}
+	for _,opt := range opts {
+		opt(handler)
+	}
+	return handler
 }
 
 type strictHandler struct {
-    ssi StrictServerInterface
-    middlewares []StrictMiddlewareFunc
+	ssi         StrictServerInterface
+	middlewares []StrictMiddlewareFunc
+	tracer      trace.Tracer
+}
+
+func WithMiddlewares(middlewares []StrictMiddlewareFunc) StrictOption {
+	return func(s *strictHandler) {
+		s.middlewares = middlewares
+	}
+}
+
+func WithTracer(tracer trace.Tracer) StrictOption {
+	return func(s *strictHandler) {
+		s.tracer = tracer
+	}
 }
 
 {{range .}}
     {{$opid := .OperationId}}
     // {{$opid}} operation middleware
     func (sh *strictHandler) {{.OperationId}}(ctx echo.Context{{genParamArgs .PathParams}}{{if .RequiresParamObject}}, params {{.OperationId}}Params{{end}}) error {
+        if sh.tracer != nil {
+            cx, span := sh.tracer.Start(ctx.Request().Context(), "{{.OperationId}}")
+            ctx.SetRequest(ctx.Request().WithContext(cx))
+            defer span.End()
+        }
         var request {{$opid | ucFirst}}RequestObject
 
         {{range .PathParams -}}

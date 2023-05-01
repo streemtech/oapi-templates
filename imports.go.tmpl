@@ -31,6 +31,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/mux"
+	"github.com/cep21/circuit/v3"
+	"github.com/go-playground/validator/v10"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	{{- range .ExternalImports}}
