@@ -39,6 +39,7 @@
         DB     *gorm.DB
         Logger Logger
         Tracer trace.Tracer
+        Validator *validator.Validate
     }
 
     {{range .Types}}
@@ -58,7 +59,12 @@
                 }(span)
 
                 {{if gt (len (dig "validation" "createKeys"  (list) $dat )) 0 }}
-                    v := validator.New()
+                    var v *validator.Validate
+                    if g.Validator != nil {
+                        v = g.Validator
+                    } else {
+                        v = validator.New()
+                    }
                     v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
                     err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "createKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
                     if err != nil {
@@ -92,7 +98,12 @@
                 }(span)
 
                 {{if gt (len (dig "validation" "getKeys"  (list) $dat )) 0 }}
-                    v := validator.New()
+                    var v *validator.Validate
+                    if g.Validator != nil {
+                        v = g.Validator
+                    } else {
+                        v = validator.New()
+                    }
                     v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
                     err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "getKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
                     if err != nil {
@@ -129,7 +140,12 @@
                     }
                 }(span)
                 {{if gt (len (dig "validation" "updateKeys"  (list) $dat )) 0 }}
-                    v := validator.New()
+                    var v *validator.Validate
+                    if g.Validator != nil {
+                        v = g.Validator
+                    } else {
+                        v = validator.New()
+                    }
                     v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
                     err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "updateKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
                     if err != nil {
@@ -186,7 +202,12 @@
                 }(span)
 
                 {{if gt (len (dig "validation" "deleteKeys"  (list) $dat )) 0 }}
-                    v := validator.New()
+                    var v *validator.Validate
+                    if g.Validator != nil {
+                        v = g.Validator
+                    } else {
+                        v = validator.New()
+                    }
                     v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
                     err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "deleteKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
                     if err != nil {

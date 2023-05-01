@@ -1,0 +1,31 @@
+output: api.gen.go
+package: api
+output-options:
+  skip-prune: true
+  user-templates:
+    echo/echo-interface.tmpl: "../../oapi-templates/echo/echo-interface.go.tmpl"
+    echo/echo-register.tmpl: "../../oapi-templates/echo/echo-register.go.tmpl"
+    echo/echo-wrappers.tmpl: "../../oapi-templates/echo/echo-wrappers.go.tmpl"
+    gorm/gorm-interface.go.tmpl: "../../oapi-templates/gorm/gorm-interface.go.tmpl"
+    strict/strict-echo.tmpl: "../../oapi-templates/strict/strict-echo.go.tmpl"
+    strict/strict-gin.tmpl: "../../oapi-templates/strict/strict-gin.go.tmpl"
+    strict/strict-http.tmpl: "../../oapi-templates/strict/strict-http.go.tmpl"
+    strict/strict-interface.tmpl: "../../oapi-templates/strict/strict-interface.go.tmpl"
+    strict/strict-responses.tmpl: "../../oapi-templates/strict/strict-responses.go.tmpl"
+    additional-properties.tmpl: "../../oapi-templates/additional-properties.go.tmpl"
+    client.tmpl: "../../oapi-templates/client.go.tmpl"
+    client-with-responses.tmpl: "../../oapi-templates/client-with-responses.go.tmpl"
+    constants.tmpl: "../../oapi-templates/constants.go.tmpl"
+    imports.tmpl: "../../oapi-templates/imports.go.tmpl"
+    inline.tmpl: "../../oapi-templates/inline.go.tmpl"
+    param-types.tmpl: "../../oapi-templates/param-types.go.tmpl"
+    request-bodies.tmpl: "../../oapi-templates/request-bodies.go.tmpl"
+    typedef.tmpl: "../../oapi-templates/typedef.go.tmpl"
+    union-and-additional-properties.tmpl: "../../oapi-templates/union-and-additional-properties.go.tmpl"
+    union.tmpl: "../../oapi-templates/union.go.tmpl"
+generate:
+  client: true
+  strict-server: true
+  echo-server: true
+  models: true
+  embedded-spec: true

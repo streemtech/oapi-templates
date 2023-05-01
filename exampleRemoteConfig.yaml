@@ -1,0 +1,31 @@
+output: api.gen.go
+package: api
+output-options:
+  skip-prune: true
+  user-templates:
+    echo/echo-interface.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/echo/echo-interface.go.tmpl"
+    echo/echo-register.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/echo/echo-register.go.tmpl"
+    echo/echo-wrappers.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/echo/echo-wrappers.go.tmpl"
+    gorm/gorm-interface.go.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/gorm/gorm-interface.go.tmpl"
+    strict/strict-echo.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/strict/strict-echo.go.tmpl"
+    strict/strict-gin.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/strict/strict-gin.go.tmpl"
+    strict/strict-http.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/strict/strict-http.go.tmpl"
+    strict/strict-interface.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/strict/strict-interface.go.tmpl"
+    strict/strict-responses.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/strict/strict-responses.go.tmpl"
+    additional-properties.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/additional-properties.go.tmpl"
+    client.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/client.go.tmpl"
+    client-with-responses.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/client-with-responses.go.tmpl"
+    constants.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/constants.go.tmpl"
+    imports.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/imports.go.tmpl"
+    inline.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/inline.go.tmpl"
+    param-types.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/param-types.go.tmpl"
+    request-bodies.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/request-bodies.go.tmpl"
+    typedef.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/typedef.go.tmpl"
+    union-and-additional-properties.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/union-and-additional-properties.go.tmpl"
+    union.tmpl: "https://raw.githubusercontent.com/streemtech/oapi-templates/main/union.go.tmpl"
+generate:
+  client: true
+  strict-server: true
+  echo-server: true
+  models: true
+  embedded-spec: true
