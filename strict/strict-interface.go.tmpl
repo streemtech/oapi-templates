@@ -1,3 +1,5 @@
+//Generated with strict-interface.tmpl
+
 {{range .}}
     {{$opid := .OperationId -}}
     type {{$opid | ucFirst}}RequestObject struct {

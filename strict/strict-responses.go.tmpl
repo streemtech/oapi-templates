@@ -1,3 +1,5 @@
+//Generated with strict-responses.tmpl
+
 {{range . -}}
     {{$hasHeaders := ne 0 (len .Headers) -}}
     {{$name := .GoName | ucFirst -}}

@@ -1,3 +1,5 @@
+//Generated with strict-echo.tmpl
+
 type StrictHandlerFunc func(ctx echo.Context, args interface{}) (interface{}, error)
 
 type StrictMiddlewareFunc func(f StrictHandlerFunc, operationID string) StrictHandlerFunc
