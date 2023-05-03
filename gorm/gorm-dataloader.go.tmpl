@@ -1,0 +1,96 @@
+//defines a series of dataloader funcs that 
+//can be used for the ClientWithResponses
+//as well as dataloaders that can be used for
+//the gorm queries. They are built in those groups
+{{define "dataloader"}}
+
+    {{template "DataloaderCache" .}}
+
+
+
+
+
+
+
+{{end}}
+
+{{define "DataloaderCache"}}
+
+
+    //Generated with gorm/gorm-dataloaders.go.tmpl
+
+    //create the tool that creates a timeout-ing cache compatable with dataloaders.
+    func NewTimeoutCache[K comparable, V any](size int, timeout time.Duration) dataloader.Cache[K, V] {
+
+        backing, _ := lru.New[K, ItemWithTimeout[V]](size)
+        return CacheImpl[K, V]{
+            backing: backing,
+            timeout: timeout,
+            mux:     &sync.Mutex{},
+        }
+    }
+
+    type CacheImpl[K comparable, V any] struct {
+        timeout time.Duration
+        backing *lru.Cache[K, ItemWithTimeout[V]]
+        mux     *sync.Mutex
+    }
+
+    type ItemWithTimeout[V any] struct {
+        spoil time.Time
+        data  dataloader.Thunk[V]
+    }
+
+    func (c CacheImpl[K, V]) Get(ctx context.Context, key K) (dataloader.Thunk[V], bool) {
+        c.mux.Lock()
+        defer c.mux.Unlock()
+        if c.backing.Contains(key) {
+            dat, ok := c.backing.Get(key)
+
+            if !ok {
+                return nil, false
+            }
+
+            if time.Now().After(dat.spoil) {
+                c.backing.Remove(key)
+                return nil, false
+            }
+
+            return dat.data, ok
+        }
+        return nil, false
+    }
+
+    func (c CacheImpl[K, V]) Set(ctx context.Context, key K, thunk dataloader.Thunk[V]) {
+        c.mux.Lock()
+        defer c.mux.Unlock()
+
+        c.backing.Add(key, ItemWithTimeout[V]{
+            spoil: time.Now().Add(c.timeout),
+            data:  thunk,
+        })
+    }
+
+    func (c CacheImpl[K, V]) Delete(ctx context.Context, key K) bool {
+        c.mux.Lock()
+        defer c.mux.Unlock()
+
+        return c.backing.Remove(key)
+    }
+    func (c CacheImpl[K, V]) Clear() {
+        c.mux.Lock()
+        defer c.mux.Unlock()
+
+        c.backing.Purge()
+    }
+
+{{end}}
+
+
+{{define "DataloaderStruct"}}
+
+
+{{end}}
+
+{{define "DataloaderDataloaders"}}
+{{end}}
