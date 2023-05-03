@@ -3,16 +3,19 @@
 
 //gorm template for making the interface that will be used.
 {{define "gorm-interface"}}
+
+    type TXMiddleware func (in *gorm.DB) (out *gorm.DB)
 //Generated with gorm/gorm-interface.go.tmpl
     type GormInterface interface {
     {{range .Types}}
         {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
             //Generate gorm stuff for {{.TypeName}}
-            Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}) (err error)
-            Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}) (data *{{.TypeName}}, err error)
-            Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}) (err error)
-            Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}) (err error)
+            Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}, middleware ...TXMiddleware) (err error)
+            Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (data *{{.TypeName}}, err error)
+            BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error)
+            Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}, middleware ...TXMiddleware) (err error)
+            Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (err error)
         {{end}}
     {{end}}
     }

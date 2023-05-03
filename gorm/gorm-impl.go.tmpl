@@ -20,7 +20,7 @@
         {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
             //Create a new {{.TypeName}}. No data validation is done.
-            func (g *GormImpl)Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}) (err error) {
+            func (g *GormImpl)Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}, middleware ...TXMiddleware) (err error) {
                 ctx, span := g.Tracer.Start(ctx, "Create{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -49,9 +49,12 @@
                 {{end}}
 
                 // Do gorm request: Create the {{.TypeName}}
-                err = g.DB.WithContext(ctx).
-                    Model({{.TypeName}}{}).
-                    Create(&data).Error
+                req := g.DB.WithContext(ctx).
+                    Model({{.TypeName}}{})
+                for _,m := range middleware {
+                    req = m(req)
+                }
+                err = req.Create(&data).Error
                 // Check for gorm error.
                 if err != nil {
                     return fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
@@ -59,7 +62,7 @@
                 return nil
             }
             //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
-            func (g *GormImpl)Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}) (data *{{.TypeName}}, err error) {
+            func (g *GormImpl)Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (data *{{.TypeName}}, err error) {
                 ctx, span := g.Tracer.Start(ctx, "Get{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -89,10 +92,70 @@
 
                 // Do gorm request: Get the {{.TypeName}}
                 data = new({{.TypeName}})
-                err = g.DB.WithContext(ctx).
+                req := g.DB.WithContext(ctx).
                     Model(&{{.TypeName}}{}).
-                    Where(&filter).
-                    Find(data).Error
+                    Where(&filter)
+                for _,m := range middleware {
+                    req = m(req)
+                }
+                err = req.Find(data).Error
+                // Check for gorm error.
+                if err != nil {
+                    if errors.Is(err, gorm.ErrRecordNotFound) {
+                        return nil, nil
+                    }
+                    return nil, fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
+                }
+                return data, nil
+            }            //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
+            func (g *GormImpl) BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error) {
+                ctx, span := g.Tracer.Start(ctx, "BulkGet{{.TypeName}}")
+                defer span.End()
+                defer func(span trace.Span) {
+                    if err != nil {
+                        if _, ok := err.(circuit.SimpleBadRequest); !ok {
+                            span.SetStatus(codes.Error, err.Error())
+                            span.RecordError(err)
+                        }
+                    }
+                }(span)
+
+                {{if gt (len (dig "validation" "getKeys"  (list) $dat )) 0 }}
+                    var v *validator.Validate
+                    if g.Validator != nil {
+                        v = g.Validator
+                    } else {
+                        v = validator.New()
+                    }
+                    v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
+                    err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "getKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
+                    if err != nil {
+                        return circuit.SimpleBadRequest{
+                            Err: fmt.Errorf("validation error: %w", err),
+                        }
+                    }
+                {{end}}
+                
+
+                // Do gorm request: Get the {{.TypeName}}
+                data = make([]*{{.TypeName}}, 0)
+                req := g.DB.WithContext(ctx).
+                    Model(&{{.TypeName}}{}).
+                    Where(&filter)
+                for _,m := range middleware {
+                    req = m(req)
+                }
+                if limit > 0 {
+                    req = req.Limit(limit)
+                }
+                if offset < 0 {
+                    req = req.Offset(offset)
+                }
+                if orderBy != "" {
+                    req = req.Order(orderBy)
+                }
+                err = req.Find(&data).Error
+
                 // Check for gorm error.
                 if err != nil {
                     if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -102,7 +165,7 @@
                 }
                 return data, nil
             }
-            func (g *GormImpl)Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}) (err error) {
+            func (g *GormImpl)Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}, middleware ...TXMiddleware) (err error) {
                 ctx, span := g.Tracer.Start(ctx, "Update{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -142,7 +205,7 @@
                 }
 
                 // Do gorm request: Update the record where universeUUID and characterUUID match.
-                err = g.DB.WithContext(ctx).
+                req := g.DB.WithContext(ctx).
                     Model(&{{.TypeName}}{}).
                     Omit(
                         {{range get $dat "updateIgnore"}}
@@ -152,8 +215,12 @@
                     ).
                     //automatically update anything that we pass in the requested fields for.
                     Select(selects[0], selects[1:]...).
-                    Where(&filter).
-                    Updates(&data).Error
+                    Where(&filter)
+
+                for _,m := range middleware {
+                    req = m(req)
+                }
+                err = req.Updates(&data).Error
 
                 // Check for gorm error.
                 if err != nil {
@@ -163,7 +230,7 @@
                 return nil
             }
             //Delete{{.TypeName}} deletes all data matching the supplied filter.
-            func (g *GormImpl)Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}) (err error) {
+            func (g *GormImpl)Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (err error) {
                 ctx, span := g.Tracer.Start(ctx, "Delete{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -191,10 +258,13 @@
                     }
                 {{end}}
                 // Do gorm request: Get the {{.TypeName}}
-                err = g.DB.WithContext(ctx).
+                req := g.DB.WithContext(ctx).
                     Model(&{{.TypeName}}{}).
-                    Where(&filter).
-                    Delete(&{{.TypeName}}{}).Error
+                    Where(&filter)
+                for _,m := range middleware {
+                    req = m(req)
+                }
+                err = req.Delete(&{{.TypeName}}{}).Error
                 // Check for gorm error.
                 if err != nil {
                     return fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
