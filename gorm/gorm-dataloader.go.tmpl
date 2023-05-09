@@ -5,6 +5,8 @@
 {{define "dataloader"}}
 
     {{template "DataloaderCache" .}}
+    {{template "DataloaderStruct" .}}
+    {{template "DataloaderDataloaders" .}}
 
 
 
@@ -21,6 +23,14 @@
 
     //create the tool that creates a timeout-ing cache compatable with dataloaders.
     func NewTimeoutCache[K comparable, V any](size int, timeout time.Duration) dataloader.Cache[K, V] {
+
+        if size <= 0 {
+            size = 1000
+        }
+
+        if timeout <= 0 {
+            timeout = time.Minute
+        }
 
         backing, _ := lru.New[K, ItemWithTimeout[V]](size)
         return CacheImpl[K, V]{
@@ -89,8 +99,151 @@
 
 {{define "DataloaderStruct"}}
 
+    type gormDataloader struct {
+        g *GormImpl
+
+        {{range .Types}}
+
+            {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+                {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
+                {{if hasKey $dat "batch" -}}
+
+                {{$key := $dat.batch.key}}
+                {{$type := $dat.batch.type}}
+                {{.TypeName}}Dataloader *dataloader.Loader[{{$type}},{{.TypeName}}]
+
+                {{end -}}
+            {{end}}
+        {{end}}
+    }
+
+    type GormDataloaderParams struct {
+        {{range .Types}}
+            {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+                {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
+                {{if hasKey $dat "batch" -}}
+
+                {{.TypeName}}GormDataloaderParams *{{.TypeName}}GormDataloaderParams 
+
+                {{end -}}
+            {{end}}
+        {{end}}
+    }
+
+    {{range .Types}}
+            {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+                {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
+                {{if hasKey $dat "batch" -}}
+
+                    type {{.TypeName}}GormDataloaderParams  struct {
+                        CacheCount    int
+                        CacheTime     time.Duration
+                        WaitTime      time.Duration
+                        BatchCapacity int
+                    }
+                {{end -}}
+            {{end}}
+        {{end}}
+
+    func NewGormDataloader(g *GormImpl, params GormDataloaderParams) *gormDataloader{
+        dl := &gormDataloader{g: g}
+        {{range .Types}}
+
+            {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+                {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
+                {{if hasKey $dat "batch" -}}
+
+                {{$key := $dat.batch.key}}
+                {{$type := $dat.batch.type}}
+                {{.TypeName}}Func := func(ctx context.Context, in []{{$type}}) []*dataloader.Result[{{.TypeName}}] {
+                    data, err := dl.g.BatchGet{{.TypeName}}(ctx, in)
+                    out := make([]*dataloader.Result[{{.TypeName}}], 0)
+                    if err != nil {
+                        for range in {
+                            out = append(out, &dataloader.Result[{{.TypeName}}]{
+                                Error: fmt.Errorf("failed batch request: %w", err),
+                            })
+                        }
+                    }
+
+                    outMap := make(map[{{$type}}]{{.TypeName}})
+                    for i := range data {
+                        if data[i] != nil {
+                            outMap[data[i].{{$key}}] = *data[i]
+                        }
+                    }
+
+                    for _,arg := range in {
+                        res := &dataloader.Result[{{.TypeName}}]{}
+                        d, ok := outMap[arg]
+                        if ok {
+                            res.Data = d
+                        } else {
+                            res.Error = gorm.ErrRecordNotFound
+                        }
+                        out = append(out, res)
+                    }
+
+                    return out
+                }
+                if params.{{.TypeName}}GormDataloaderParams == nil {
+                    params.{{.TypeName}}GormDataloaderParams = &{{.TypeName}}GormDataloaderParams{
+                        CacheCount:    1000,
+                        CacheTime:     time.Minute,
+                        WaitTime:       time.Millisecond*16,
+                        BatchCapacity: 100,
+                    }
+                }
+                if params.{{.TypeName}}GormDataloaderParams.WaitTime < 0 {
+                    params.{{.TypeName}}GormDataloaderParams.WaitTime = time.Millisecond*16
+                }
+                if params.{{.TypeName}}GormDataloaderParams.BatchCapacity < 0 {
+                    params.{{.TypeName}}GormDataloaderParams.BatchCapacity = 100
+                }
+
+                {{.TypeName}}Cache := NewTimeoutCache[{{$type}}, {{.TypeName}}](params.{{.TypeName}}GormDataloaderParams.CacheCount, params.{{.TypeName}}GormDataloaderParams.CacheTime)
+                dl.{{.TypeName}}Dataloader = dataloader.NewBatchedLoader(
+                    {{.TypeName}}Func,
+                    dataloader.WithCache({{.TypeName}}Cache),
+                    dataloader.WithWait[{{$type}}, {{.TypeName}}](params.{{.TypeName}}GormDataloaderParams.WaitTime),
+                    dataloader.WithBatchCapacity[{{$type}}, {{.TypeName}}](params.{{.TypeName}}GormDataloaderParams.BatchCapacity),
+                )
+
+                {{end -}}
+            {{end}}
+        {{end}}
+
+        return dl
+    }
+
 
 {{end}}
 
 {{define "DataloaderDataloaders"}}
+
+    {{range .Types}}
+        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
+            {{if hasKey $dat "batch" -}}
+            {{$key := $dat.batch.key}}
+            {{$type := $dat.batch.type}}
+            func (DS *gormDataloader) {{.TypeName}}Clear(ctx context.Context, key {{$type}}) {
+                DS.{{.TypeName}}Dataloader.Clear(ctx, key)
+            }
+            func (DS *gormDataloader) {{.TypeName}}ClearAll() {
+                DS.{{.TypeName}}Dataloader.ClearAll()
+            }
+            func (DS *gormDataloader) {{.TypeName}}Load(ctx context.Context, key {{$type}}) dataloader.Thunk[{{.TypeName}}] {
+                return DS.{{.TypeName}}Dataloader.Load(ctx, key)
+            }
+            func (DS *gormDataloader) {{.TypeName}}LoadMany(ctx context.Context, keys []{{$type}}) dataloader.ThunkMany[{{.TypeName}}] {
+                return DS.{{.TypeName}}Dataloader.LoadMany(ctx, keys)
+            }
+            func (DS *gormDataloader) {{.TypeName}}Prime(ctx context.Context, key {{$type}}, value {{.TypeName}}) {
+                DS.{{.TypeName}}Dataloader.Prime(ctx, key, value)
+            }
+            {{end}}
+        {{end}}
+    {{end}}
+
 {{end}}

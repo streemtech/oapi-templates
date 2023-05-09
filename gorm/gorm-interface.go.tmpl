@@ -14,6 +14,9 @@
             Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}, middleware ...TXMiddleware) (err error)
             Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (data *{{.TypeName}}, err error)
             BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error)
+            {{if hasKey $dat "batch" -}}
+            BatchGet{{.TypeName}}(ctx context.Context, filter []{{$dat.batch.type}}, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error)
+            {{end -}}
             Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}, middleware ...TXMiddleware) (err error)
             Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (err error)
         {{end}}

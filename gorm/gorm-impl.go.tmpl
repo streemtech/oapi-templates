@@ -107,7 +107,8 @@
                     return nil, fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
                 }
                 return data, nil
-            }            //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
+            }
+            //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
             func (g *GormImpl) BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error) {
                 ctx, span := g.Tracer.Start(ctx, "BulkGet{{.TypeName}}")
                 defer span.End()
@@ -165,6 +166,45 @@
                 }
                 return data, nil
             }
+            {{if hasKey $dat "batch" -}}
+            {{$key := $dat.batch.key}}
+            {{$type := $dat.batch.type}}
+            func (g *GormImpl)BatchGet{{.TypeName}}(ctx context.Context, filter []{{$type}}, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error){
+                ctx, span := g.Tracer.Start(ctx, "BatchGet{{.TypeName}}")
+                defer span.End()
+                defer func(span trace.Span) {
+                    if err != nil {
+                        if _, ok := err.(circuit.SimpleBadRequest); !ok {
+                            span.SetStatus(codes.Error, err.Error())
+                            span.RecordError(err)
+                        }
+                    }
+                }(span)
+                if filter == nil || len(filter) <=0 {
+                    return nil, fmt.Errorf("must provide at least one filter value")
+                }
+
+                data = make([]*{{.TypeName}}, 0)
+
+                req := g.DB.WithContext(ctx).
+                    Model(&{{.TypeName}}{})
+
+                for _, v := range filter {
+                    v := v
+                    req = req.Or(g.DB.Where(&{{.TypeName}}{
+                        {{$key}}: v,
+                    }))
+                }
+
+                err = req.Find(&data).Error
+                if err != nil {
+                    return nil, fmt.Errorf("failed to batch get {{.TypeName}}: %w", err)
+                }
+
+                return data,  nil
+            }
+            {{end -}}
+            //Update{{.TypeName}} updates any data matching filter with the data in data, but only for keys matching keys.
             func (g *GormImpl)Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}, middleware ...TXMiddleware) (err error) {
                 ctx, span := g.Tracer.Start(ctx, "Update{{.TypeName}}")
                 defer span.End()
