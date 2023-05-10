@@ -8,30 +8,21 @@
     {{template "DataloaderStruct" .}}
     {{template "DataloaderDataloaders" .}}
 
-
-
-
-
-
-
 {{end}}
 
 {{define "DataloaderCache"}}
-
+//Created by gorm-dataloader.go.tmpl/DataloaderCache
 
     //Generated with gorm/gorm-dataloaders.go.tmpl
 
     //create the tool that creates a timeout-ing cache compatable with dataloaders.
     func NewTimeoutCache[K comparable, V any](size int, timeout time.Duration) dataloader.Cache[K, V] {
-
         if size <= 0 {
             size = 1000
         }
-
         if timeout <= 0 {
             timeout = time.Minute
         }
-
         backing, _ := lru.New[K, ItemWithTimeout[V]](size)
         return CacheImpl[K, V]{
             backing: backing,
@@ -39,69 +30,58 @@
             mux:     &sync.Mutex{},
         }
     }
-
     type CacheImpl[K comparable, V any] struct {
         timeout time.Duration
         backing *lru.Cache[K, ItemWithTimeout[V]]
         mux     *sync.Mutex
     }
-
     type ItemWithTimeout[V any] struct {
         spoil time.Time
         data  dataloader.Thunk[V]
     }
-
     func (c CacheImpl[K, V]) Get(ctx context.Context, key K) (dataloader.Thunk[V], bool) {
         c.mux.Lock()
         defer c.mux.Unlock()
         if c.backing.Contains(key) {
             dat, ok := c.backing.Get(key)
-
             if !ok {
                 return nil, false
             }
-
             if time.Now().After(dat.spoil) {
                 c.backing.Remove(key)
                 return nil, false
             }
-
             return dat.data, ok
         }
         return nil, false
     }
-
     func (c CacheImpl[K, V]) Set(ctx context.Context, key K, thunk dataloader.Thunk[V]) {
         c.mux.Lock()
         defer c.mux.Unlock()
-
         c.backing.Add(key, ItemWithTimeout[V]{
             spoil: time.Now().Add(c.timeout),
             data:  thunk,
         })
     }
-
     func (c CacheImpl[K, V]) Delete(ctx context.Context, key K) bool {
         c.mux.Lock()
         defer c.mux.Unlock()
-
         return c.backing.Remove(key)
     }
     func (c CacheImpl[K, V]) Clear() {
         c.mux.Lock()
         defer c.mux.Unlock()
-
         c.backing.Purge()
     }
-
 {{end}}
 
 
 {{define "DataloaderStruct"}}
+//Created by gorm-dataloader.go.tmpl/DataloaderStruct
 
     type gormDataloader struct {
         g *GormImpl
-
+        GormDataloaderParams GormDataloaderParams
         {{range .Types}}
 
             {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
@@ -111,7 +91,7 @@
                 {{$key := $dat.batch.key}}
                 {{$type := $dat.batch.type}}
                 {{.TypeName}}Dataloader *dataloader.Loader[{{$type}},{{.TypeName}}]
-
+                
                 {{end -}}
             {{end}}
         {{end}}
@@ -136,17 +116,22 @@
                 {{if hasKey $dat "batch" -}}
 
                     type {{.TypeName}}GormDataloaderParams  struct {
-                        CacheCount    int
-                        CacheTime     time.Duration
-                        WaitTime      time.Duration
-                        BatchCapacity int
+                        CacheCount            int
+                        CacheTime             time.Duration
+                        WaitTime              time.Duration
+                        BatchCapacity         int
+                        DisableAutoErrorClear bool
                     }
                 {{end -}}
             {{end}}
         {{end}}
 
     func NewGormDataloader(g *GormImpl, params GormDataloaderParams) *gormDataloader{
-        dl := &gormDataloader{g: g}
+        dl := &gormDataloader{
+            g: g,
+            GormDataloaderParams: params,
+        }
+
         {{range .Types}}
 
             {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
@@ -200,6 +185,7 @@
                 if params.{{.TypeName}}GormDataloaderParams.BatchCapacity < 0 {
                     params.{{.TypeName}}GormDataloaderParams.BatchCapacity = 100
                 }
+                
 
                 {{.TypeName}}Cache := NewTimeoutCache[{{$type}}, {{.TypeName}}](params.{{.TypeName}}GormDataloaderParams.CacheCount, params.{{.TypeName}}GormDataloaderParams.CacheTime)
                 dl.{{.TypeName}}Dataloader = dataloader.NewBatchedLoader(
@@ -220,6 +206,7 @@
 {{end}}
 
 {{define "DataloaderDataloaders"}}
+//Created by gorm-dataloader.go.tmpl/DataloaderDataloaders
 
     {{range .Types}}
         {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
@@ -234,10 +221,28 @@
                 DS.{{.TypeName}}Dataloader.ClearAll()
             }
             func (DS *gormDataloader) {{.TypeName}}Load(ctx context.Context, key {{$type}}) dataloader.Thunk[{{.TypeName}}] {
-                return DS.{{.TypeName}}Dataloader.Load(ctx, key)
+                t := DS.{{.TypeName}}Dataloader.Load(ctx, key)
+                if DS.GormDataloaderParams.{{.TypeName}}GormDataloaderParams.DisableAutoErrorClear {
+                    return t
+                }
+                _, err := t()
+                if err != nil {
+                    DS.{{.TypeName}}Clear(ctx, key)
+                }
+                return t
             }
             func (DS *gormDataloader) {{.TypeName}}LoadMany(ctx context.Context, keys []{{$type}}) dataloader.ThunkMany[{{.TypeName}}] {
-                return DS.{{.TypeName}}Dataloader.LoadMany(ctx, keys)
+                t := DS.{{.TypeName}}Dataloader.LoadMany(ctx, keys)
+                if DS.GormDataloaderParams.{{.TypeName}}GormDataloaderParams.DisableAutoErrorClear {
+                    return t
+                }
+                _, errs := t()
+                for i,v := range errs {
+                    if v != nil {
+                        DS.{{.TypeName}}Clear(ctx, keys[i])
+                    }
+                }
+                return t
             }
             func (DS *gormDataloader) {{.TypeName}}Prime(ctx context.Context, key {{$type}}, value {{.TypeName}}) {
                 DS.{{.TypeName}}Dataloader.Prime(ctx, key, value)
