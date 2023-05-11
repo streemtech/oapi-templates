@@ -8,9 +8,11 @@ type StrictMiddlewareFunc func(f StrictHandlerFunc, operationID string) StrictHa
 
 func NewStrictHandler(ssi StrictServerInterface, opts ...StrictOption) ServerInterface {
 	handler := &strictHandler{ssi: ssi}
-	for _,opt := range opts {
-		opt(handler)
-	}
+    if opts != nil && len(opts) >0 {
+        for _,opt := range opts {
+            opt(handler)
+        }
+    }
 	return handler
 }
 
