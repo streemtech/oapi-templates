@@ -10,7 +10,9 @@ func NewStrictHandler(ssi StrictServerInterface, opts ...StrictOption) ServerInt
 	handler := &strictHandler{ssi: ssi}
     if opts != nil && len(opts) >0 {
         for _,opt := range opts {
-            opt(handler)
+            if opt != nil {
+				opt(handler)
+			}
         }
     }
 	return handler
