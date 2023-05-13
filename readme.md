@@ -14,10 +14,12 @@ This contains all specalty config that applies globally to the functions.
 This is an array of keys that should be ignored in the update calls, and thus will not be able to be updated.
 
 #### validation
-This is the data used in the validation step to validate the inputs.
-##### tag
+This is an object to validate the data used during create/update.
+##### (create|update)
+This is the root object used to look for validation of.
+###### tag
 This is the unique tag used by the validator to check against the input. (This is so that the default validation tag is not misused in these calls.)
-##### (create|get|update|delete)Keys
+###### Keys
 This is an array of strings that represents the struct keys to validate
 
 #### batch
