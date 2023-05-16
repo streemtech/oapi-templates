@@ -179,11 +179,11 @@
                         BatchCapacity: 100,
                     }
                 }
-                if params.{{.TypeName}}GormDataloaderParams.WaitTime < 0 {
+                if params.{{.TypeName}}GormDataloaderParams.WaitTime <= 0 {
                     params.{{.TypeName}}GormDataloaderParams.WaitTime = time.Millisecond*16
                 }
                 if params.{{.TypeName}}GormDataloaderParams.BatchCapacity < 0 {
-                    params.{{.TypeName}}GormDataloaderParams.BatchCapacity = 100
+                    params.{{.TypeName}}GormDataloaderParams.BatchCapacity = 0
                 }
                 
 

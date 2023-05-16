@@ -13,7 +13,8 @@
         DB     *gorm.DB
         Logger Logger
         Tracer trace.Tracer
-        Validator *validator.Validate
+        CreateValidator *validator.Validate
+        UpdateValidator *validator.Validate
     }
 
     {{range .Types}}
@@ -35,12 +36,12 @@
 
                 {{if and (and (hasKey $dat "validation" ) (hasKey $dat.validation "create")) (hasKey $dat.validation.create "keys") }}
                     var v *validator.Validate
-                    if g.Validator != nil {
-                        v = g.Validator
+                    if g.CreateValidator != nil {
+                        v = g.CreateValidator
                     } else {
                         v = validator.New()
+                        v.SetTagName("{{dig "validation" "create" "tag" "gormCreateValidate" $dat}}")
                     }
-                    v.SetTagName("{{dig "validation" "create" "tag" "gormCreateValidate" $dat}}")
                     err = v.StructPartialCtx(
                             ctx, 
                             data, 
@@ -123,7 +124,7 @@
                 if limit > 0 {
                     req = req.Limit(limit)
                 }
-                if offset < 0 {
+                if offset > 0 {
                     req = req.Offset(offset)
                 }
                 if orderBy != "" {
@@ -192,12 +193,12 @@
                 }(span)
                 {{if and (and (hasKey $dat "validation" ) (hasKey $dat.validation "update")) (hasKey $dat.validation.update "keys") }}
                     var v *validator.Validate
-                    if g.Validator != nil {
-                        v = g.Validator
+                    if g.UpdateValidator != nil {
+                        v = g.UpdateValidator
                     } else {
                         v = validator.New()
+                        v.SetTagName("{{dig "validation" "update" "tag" "gormUpdateValidate" $dat}}")
                     }
-                    v.SetTagName("{{dig "validation" "update" "tag" "gormUpdateValidate" $dat}}")
                     err = v.StructPartialCtx(
                             ctx, 
                             data, 
@@ -262,21 +263,6 @@
                     }
                 }(span)
 
-                {{if gt (len (dig "validation" "deleteKeys"  (list) $dat )) 0 }}
-                    var v *validator.Validate
-                    if g.Validator != nil {
-                        v = g.Validator
-                    } else {
-                        v = validator.New()
-                    }
-                    v.SetTagName("{{dig "validation" "tag" "gormValidate" $dat}}")
-                    err = v.StructPartialCtx(ctx, data, {{range $k, $v := (dig "validation" "deleteKeys" (list) $dat)}}{{if gt $k 0}},{{end}}"{{.}}"{{end}})
-                    if err != nil {
-                        return circuit.SimpleBadRequest{
-                            Err: fmt.Errorf("validation error: %w", err),
-                        }
-                    }
-                {{end}}
                 // Do gorm request: Get the {{.TypeName}}
                 req := g.DB.WithContext(ctx).
                     Model(&{{.TypeName}}{}).
