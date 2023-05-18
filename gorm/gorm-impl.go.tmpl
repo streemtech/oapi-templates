@@ -15,6 +15,7 @@
         Tracer trace.Tracer
         CreateValidator *validator.Validate
         UpdateValidator *validator.Validate
+        DeleteValidator *validator.Validate
     }
 
     {{range .Types}}
@@ -90,7 +91,7 @@
                 for _,m := range middleware {
                     req = m(req)
                 }
-                err = req.Find(data).Error
+                err = req.First(data).Error
                 // Check for gorm error.
                 if err != nil {
                     if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -263,6 +264,28 @@
                     }
                 }(span)
 
+
+                {{if and (and (hasKey $dat "validation" ) (hasKey $dat.validation "create")) (hasKey $dat.validation.delete "keys") }}
+                    var v *validator.Validate
+                    if g.DeleteValidator != nil {
+                        v = g.DeleteValidator
+                    } else {
+                        v = validator.New()
+                        v.SetTagName("{{dig "validation" "delete" "tag" "gormDeleteValidate" $dat}}")
+                    }
+                    err = v.StructPartialCtx(
+                            ctx, 
+                            filter, 
+                            {{- range $k, $v := (dig "validation" "delete" "keys" (list) $dat)}}
+                            "{{.}}",
+                            {{- end}}
+                        )
+                    if err != nil {
+                        return circuit.SimpleBadRequest{
+                            Err: fmt.Errorf("validation error: %w", err),
+                        }
+                    }
+                {{end}}
                 // Do gorm request: Get the {{.TypeName}}
                 req := g.DB.WithContext(ctx).
                     Model(&{{.TypeName}}{}).
