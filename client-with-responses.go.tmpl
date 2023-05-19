@@ -97,7 +97,6 @@ func (c *ClientWithResponses) {{$opid}}{{if .HasBody}}WithBody{{end}}WithRespons
     if c.Tracer != nil {
 		var span trace.Span
         ctx, span = c.Tracer.Start(ctx, "{{$opid}}{{if .HasBody}}WithBody{{end}}WithResponse")
-        defer span.End()
         defer func(span trace.Span) {
             if err != nil {
                 if _, ok := err.(StatusFailureError); !ok {
@@ -105,6 +104,7 @@ func (c *ClientWithResponses) {{$opid}}{{if .HasBody}}WithBody{{end}}WithRespons
                     span.RecordError(err)
                 }
             }
+            span.End()
         }(span)
     }
 
@@ -128,7 +128,6 @@ func (c *ClientWithResponses) {{$opid}}{{.Suffix}}WithResponse(ctx context.Conte
     if c.Tracer != nil {
 		var span trace.Span
         ctx, span = c.Tracer.Start(ctx, "{{$opid}}{{.Suffix}}WithResponse")
-        defer span.End()
         defer func(span trace.Span) {
             if err != nil {
                 if _, ok := err.(StatusFailureError); !ok {
@@ -136,6 +135,7 @@ func (c *ClientWithResponses) {{$opid}}{{.Suffix}}WithResponse(ctx context.Conte
                     span.RecordError(err)
                 }
             }
+            span.End()
         }(span)
     }
 

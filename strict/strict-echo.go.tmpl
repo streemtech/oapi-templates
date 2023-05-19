@@ -39,11 +39,19 @@ func WithTracer(tracer trace.Tracer) StrictOption {
 {{range .}}
     {{$opid := .OperationId}}
     // {{$opid}} operation middleware
-    func (sh *strictHandler) {{.OperationId}}(ctx echo.Context{{genParamArgs .PathParams}}{{if .RequiresParamObject}}, params {{.OperationId}}Params{{end}}) error {
+    func (sh *strictHandler) {{.OperationId}}(ctx echo.Context{{genParamArgs .PathParams}}{{if .RequiresParamObject}}, params {{.OperationId}}Params{{end}})(err error) {
         if sh.tracer != nil {
             cx, span := sh.tracer.Start(ctx.Request().Context(), "{{.OperationId}}")
             ctx.SetRequest(ctx.Request().WithContext(cx))
-            defer span.End()
+            defer func(span trace.Span) {
+                if err != nil {
+                    if _, ok := err.(*echo.HTTPError); ok {
+                        span.SetStatus(codes.Error, err.Error())
+                        span.RecordError(err)
+                    }
+                }
+                span.End()
+            }(span)
         }
         var request {{$opid | ucFirst}}RequestObject
 
