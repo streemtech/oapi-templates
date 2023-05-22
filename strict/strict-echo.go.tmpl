@@ -41,7 +41,7 @@ func WithTracer(tracer trace.Tracer) StrictOption {
     // {{$opid}} operation middleware
     func (sh *strictHandler) {{.OperationId}}(ctx echo.Context{{genParamArgs .PathParams}}{{if .RequiresParamObject}}, params {{.OperationId}}Params{{end}})(err error) {
         if sh.tracer != nil {
-            cx, span := sh.tracer.Start(ctx.Request().Context(), "{{.OperationId}}")
+            cx, span := sh.tracer.Start(ctx.Request().Context(), "{{.OperationId}}Handler")
             ctx.SetRequest(ctx.Request().WithContext(cx))
             defer func(span trace.Span) {
                 if err != nil {
