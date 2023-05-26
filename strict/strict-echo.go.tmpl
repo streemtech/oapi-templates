@@ -53,11 +53,26 @@ func WithTracer(tracer trace.Tracer) StrictOption {
                 span.End()
             }(span)
         }
+
+        //set logger context.
+        log := tlog.FromContext(ctx.Request().Context()).With(slog.String("operationID", "{{.OperationId}}"))
+        
         var request {{$opid | ucFirst}}RequestObject
 
         {{range .PathParams -}}
             request.{{.GoName}} = {{.GoVariableName}}
         {{end -}}
+
+        {{if gt (len .PathParams) 0 -}}
+        log = log.With(
+            slog.Group(
+                "path",
+                {{range .PathParams -}}
+                    slog.String("{{.GoName}}", ctx.Param("{{.ParamName}}")),
+                {{end -}}
+            ),
+        )
+        {{end}}
 
         {{if .RequiresParamObject -}}
             request.Params = params
@@ -105,13 +120,16 @@ func WithTracer(tracer trace.Tracer) StrictOption {
             {{if $multipleBodies}}}{{end}}
         {{end}}{{/* range .Bodies */}}
 
+        cx := tlog.Context(ctx.Request().Context(), log)
+        ctx.SetRequest(ctx.Request().WithContext(cx))
+
         handler := func(ctx echo.Context, request interface{}) (interface{}, error){
             return sh.ssi.{{.OperationId}}(ctx.Request().Context(), request.({{$opid | ucFirst}}RequestObject))
         }
         for _, middleware := range sh.middlewares {
             handler = middleware(handler, "{{.OperationId}}")
         }
-
+        log.Info("Calling handler")
         response, err := handler(ctx, request)
 
         if err != nil {

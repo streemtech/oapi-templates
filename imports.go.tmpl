@@ -38,6 +38,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"github.com/graph-gophers/dataloader/v7"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/streemtech/libraries/tlog"
+	"golang.org/x/exp/slog"
 	{{- range .ExternalImports}}
 	{{ . }}
 	{{- end}}
