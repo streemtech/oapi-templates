@@ -1,8 +1,7 @@
 //section for calling the other gorm templates
-{{define "gorm"}}
-//Generated with gorm/gorm.go.tmpl
-    {{template "gorm-interface" .}}
-    {{template "gorm-impl" .}}
-    {{template "dataloader" .}}
-
-{{end}}
+{{ define "gorm" }}
+	//Generated with gorm/gorm.go.tmpl
+	{{ template "gorm-interface" . }}
+	{{ template "gorm-impl" . }}
+	{{ template "dataloader" . }}
+{{ end }}

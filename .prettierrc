@@ -1,0 +1,16 @@
+{
+    "tabWidth": 4,
+    "useTabs": true,
+    "goTemplateBracketSpacing": true,
+    "printWidth": 800,
+    "overrides": [
+        {
+            "files": [
+                "*.go.tmpl"
+            ],
+            "options": {
+                "parser": "go-template"
+            }
+        }
+    ]
+}
