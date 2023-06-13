@@ -2,16 +2,9 @@
 //gorm template for creating the implementation to the interface functions defined above.
 {{define "gorm-impl"}}
 //Generated with gorm/gorm-impl.go.tmpl
-    type Logger interface {
-        Errorf(message string, args ...interface{})
-        Warnf(message string, args ...interface{})
-        Infof(message string, args ...interface{})
-        Debugf(message string, args ...interface{})
-    }
     var _ GormInterface = (*GormImpl)(nil)
     type GormImpl struct {
         DB     *gorm.DB
-        Logger Logger
         Tracer trace.Tracer
         CreateValidator *validator.Validate
         UpdateValidator *validator.Validate
