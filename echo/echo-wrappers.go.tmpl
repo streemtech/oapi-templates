@@ -8,7 +8,8 @@ type ServerInterfaceWrapper struct {
 {{range .}}{{$opid := .OperationId}}// {{$opid}} converts echo context to params.
 func (w *ServerInterfaceWrapper) {{.OperationId}} (ctx echo.Context) error {
     var err error
-    log := tlog.FromEcho()
+    tlog.EchoWith(ctx, slog.String("operationID", "{{.OperationId}}"))
+    log := tlog.FromEcho(ctx)
 {{range .PathParams}}// ------------- Path parameter "{{.ParamName}}" -------------
     var {{$varName := .GoVariableName}}{{$varName}} {{.TypeDef}}
 {{if .IsPassThrough}}

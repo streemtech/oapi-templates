@@ -55,7 +55,7 @@ func WithTracer(tracer trace.Tracer) StrictOption {
         }
 
         //set logger context.
-        log := tlog.FromContext(ctx.Request().Context()).With(slog.String("operationID", "{{.OperationId}}"))
+        log := tlog.FromEcho(ctx)
         
         var request {{$opid | ucFirst}}RequestObject
 
