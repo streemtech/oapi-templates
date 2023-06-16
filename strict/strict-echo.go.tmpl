@@ -133,6 +133,7 @@ func WithTracer(tracer trace.Tracer) StrictOption {
         response, err := handler(ctx, request)
 
         if err != nil {
+            log.Err(fmt.Sprintf("error response from {{.OperationId}} handler: %w", err), err)
             return err
         } else if validResponse, ok := response.({{$opid | ucFirst}}ResponseObject); ok {
             return validResponse.Visit{{$opid}}Response(ctx.Response())
