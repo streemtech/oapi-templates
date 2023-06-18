@@ -45,10 +45,8 @@ func WithTracer(tracer trace.Tracer) StrictOption {
             ctx.SetRequest(ctx.Request().WithContext(cx))
             defer func(span trace.Span) {
                 if err != nil {
-                    if _, ok := err.(*echo.HTTPError); ok {
-                        span.SetStatus(codes.Error, err.Error())
-                        span.RecordError(err)
-                    }
+                    span.SetStatus(codes.Error, err.Error())
+                    span.RecordError(err)
                 }
                 span.End()
             }(span)
