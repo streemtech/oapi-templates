@@ -10,6 +10,9 @@ func (w *ServerInterfaceWrapper) {{.OperationId}} (ctx echo.Context) error {
     var err error
     tlog.EchoWith(ctx, slog.String("operationID", "{{.OperationId}}"))
     log := tlog.FromEcho(ctx)
+    if false {
+        log.Error("")
+    }
 {{range .PathParams}}// ------------- Path parameter "{{.ParamName}}" -------------
     var {{$varName := .GoVariableName}}{{$varName}} {{.TypeDef}}
 {{if .IsPassThrough}}
