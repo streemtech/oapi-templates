@@ -146,7 +146,7 @@
                     if err != nil {
                         for range in {
                             out = append(out, &dataloader.Result[{{.TypeName}}]{
-                                Error: fmt.Errorf("failed batch request: %w", err),
+                                Error: pErrors.Wrap(err,"failed batch request"),
                             })
                         }
                     }

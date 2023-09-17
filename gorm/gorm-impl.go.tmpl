@@ -45,7 +45,7 @@
                         )
                     if err != nil {
                         return circuit.SimpleBadRequest{
-                            Err: fmt.Errorf("validation error: %w", err),
+                            Err: pErrors.Wrap(err, "validation error"),
                         }
                     }
                 {{end}}
@@ -59,7 +59,7 @@
                 err = req.Create(&data).Error
                 // Check for gorm error.
                 if err != nil {
-                    return fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
+                    return pErrors.Wrap(err, "error creating {{.TypeName}} in gorm")
                 }
                 return nil
             }
@@ -90,7 +90,7 @@
                     if errors.Is(err, gorm.ErrRecordNotFound) {
                         return nil, nil
                     }
-                    return nil, fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
+                    return nil, pErrors.Wrap(err, "error creating {{.TypeName}} in gorm")
                 }
                 return data, nil
             }
@@ -131,7 +131,7 @@
                     if errors.Is(err, gorm.ErrRecordNotFound) {
                         return nil, nil
                     }
-                    return nil, fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
+                    return nil, pErrors.Wrap(err, "error finding {{.TypeName}} in gorm")
                 }
                 return data, nil
             }
@@ -150,7 +150,7 @@
                     }
                 }(span)
                 if filter == nil || len(filter) <=0 {
-                    return nil, fmt.Errorf("must provide at least one filter value")
+                    return nil, pErrors.New("must provide at least one filter value")
                 }
 
                 data = make([]*{{.TypeName}}, 0)
@@ -167,7 +167,7 @@
 
                 err = req.Find(&data).Error
                 if err != nil {
-                    return nil, fmt.Errorf("failed to batch get {{.TypeName}}: %w", err)
+                    return nil, pErrors.Wrap(err, "error batch getting {{.TypeName}} in gorm")
                 }
 
                 return data,  nil
@@ -202,7 +202,7 @@
                         )
                     if err != nil {
                         return circuit.SimpleBadRequest{
-                            Err: fmt.Errorf("validation error: %w", err),
+                            Err: pErrors.Wrap(err, "validation error"),
                         }
                     }
                 {{end}}
@@ -210,7 +210,7 @@
                 // Verify update request has required key ammount.
                 if len(keys) <= 0 {
                     return circuit.SimpleBadRequest{
-                        Err: fmt.Errorf("at least one key required to update"),
+                        Err: pErrors.New("at least one key required to update"),
                     }
                 }
                 // Identify which values to update.
@@ -239,7 +239,7 @@
 
                 // Check for gorm error.
                 if err != nil {
-                    return fmt.Errorf("error updating {{.TypeName}} in gorm: %w", err)
+                    return pErrors.Wrap(err, "error updating {{.TypeName}} in gorm")
                 }
                 // Return nil on success.
                 return nil
@@ -275,7 +275,7 @@
                         )
                     if err != nil {
                         return circuit.SimpleBadRequest{
-                            Err: fmt.Errorf("validation error: %w", err),
+                            Err: pErrors.Wrap(err, "validation error"),
                         }
                     }
                 {{end}}
@@ -289,7 +289,7 @@
                 err = req.Delete(&{{.TypeName}}{}).Error
                 // Check for gorm error.
                 if err != nil {
-                    return fmt.Errorf("error creating {{.TypeName}} in gorm: %w", err)
+                    return pErrors.Wrap(err, "error deleting {{.TypeName}} in gorm")
                 }
                 return nil
             }
