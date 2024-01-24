@@ -23,7 +23,6 @@ import (
 	"path"
 	"strings"
 	"time"
-
 	"github.com/oapi-codegen/runtime"
 	strictecho "github.com/oapi-codegen/runtime/strictmiddleware/echo"
 	strictgin "github.com/oapi-codegen/runtime/strictmiddleware/gin"
@@ -46,7 +45,7 @@ import (
 	"github.com/graph-gophers/dataloader/v7"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/streemtech/libraries/tlog"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	{{- range .ExternalImports}}
 	{{ . }}
 	{{- end}}
