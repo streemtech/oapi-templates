@@ -15,7 +15,7 @@
         {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
             //Create a new {{.TypeName}}. No data validation is done.
-            func (g *GormImpl)Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}, middleware ...TXMiddleware) (err error) {
+            func (g *GormImpl)Create{{.TypeName}}(ctx context.Context, data *{{.TypeName}}, middleware ...TXMiddleware) (err error) {
                 ctx, span := g.Tracer.Start(ctx, "Create{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -52,11 +52,12 @@
 
                 // Do gorm request: Create the {{.TypeName}}
                 req := g.DB.WithContext(ctx).
+                    Clauses(clause.Returning{}).
                     Model({{.TypeName}}{})
                 for _,m := range middleware {
                     req = m(req)
                 }
-                err = req.Create(&data).Error
+                err = req.Create(data).Error
                 // Check for gorm error.
                 if err != nil {
                     return pErrors.Wrap(err, "error creating {{.TypeName}} in gorm")
@@ -219,7 +220,7 @@
                     selects[i] = g.DB.NamingStrategy.ColumnName("", v)
                 }
 
-                // Do gorm request: Update the record where universeUUID and characterUUID match.
+                // Do gorm request: Update the record where arguments match.
                 req := g.DB.WithContext(ctx).
                     Model(&{{.TypeName}}{}).
                     Omit(
