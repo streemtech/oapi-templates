@@ -11,7 +11,7 @@
         {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
             //Generate gorm stuff for {{.TypeName}}
-            Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}, middleware ...TXMiddleware) (err error)
+            Create{{.TypeName}}(ctx context.Context, data *{{.TypeName}}, middleware ...TXMiddleware) (err error)
             Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (data *{{.TypeName}}, err error)
             BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error)
             {{if hasKey $dat "batch" -}}
