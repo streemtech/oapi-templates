@@ -11,18 +11,72 @@
         {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
             //Generate gorm stuff for {{.TypeName}}
-            Create{{.TypeName}}(ctx context.Context, data *{{.TypeName}}, middleware ...TXMiddleware) (err error)
-            Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (data *{{.TypeName}}, err error)
-            BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error)
+            Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}, middleware ...{{.TypeName}}GormOpt) (err error)
+            Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...{{.TypeName}}GormOpt) (data *{{.TypeName}}, err error)
+            BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, middleware ...{{.TypeName}}GormOpt) (data []*{{.TypeName}}, err error)
             {{if hasKey $dat "batch" -}}
-            BatchGet{{.TypeName}}(ctx context.Context, filter []{{$dat.batch.type}}, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error)
+            BatchGet{{.TypeName}}(ctx context.Context, filter []{{$dat.batch.type}}, middleware ...{{.TypeName}}GormOpt) (data []*{{.TypeName}}, err error)
             {{end -}}
-            Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}, middleware ...TXMiddleware) (err error)
-            Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (err error)
+            Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}, middleware ...{{.TypeName}}GormOpt) (err error)
+            Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...{{.TypeName}}GormOpt) (err error)
         {{end}}
     {{end}}
     }
 
+    //Options struct
+    type txMiddlewaresOption struct {
+        txMiddlewares []TXMiddleware
+    }
+    type returningObjOption struct {
+        returningObj  any
+    }
+    type transactionOption struct {
+        transaction   *gorm.DB
+    }
+
+    //WithTxMiddlewares Allows the user to set and apply a series of middlewares that are added to the request.
+    func WithTxMiddlewares(txMiddlewares ...TXMiddleware) *txMiddlewaresOption {
+        return &txMiddlewaresOption{txMiddlewares:txMiddlewares}
+    }
+    //WithReturningObject allows the user to set the object returned from the "Returning" call
+    func WithReturningObject(obj any) *returningObjOption {
+        return &returningObjOption{returningObj: obj}
+    }
+    //WithTransaction Allows the user to pass in a transaction that can be used instead of the base request.
+    func WithTransaction(tx *gorm.DB) *transactionOption {
+        return &transactionOption{transaction: tx}
+    }
+    {{range .Types -}}
+        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            func (opt *txMiddlewaresOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
+                conf.txMiddlewares = opt.txMiddlewares
+            }
+            func (opt *returningObjOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
+                conf.returningObj = opt.returningObj
+            }
+            func (opt *transactionOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
+                conf.transaction = opt.transaction
+            }
+        {{- end }}
+    {{- end}}
+
+    {{range .Types -}}
+        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            //{{.TypeName}} Gorm Options
+            type {{.TypeName}}GormOpt interface {
+                modify{{.TypeName}}GormConfig(*{{.TypeName}}GormConfig)
+            }
+            type {{.TypeName}}GormConfig struct {
+                txMiddlewares []TXMiddleware
+                returningObj  any
+                transaction   *gorm.DB
+            }
+            var _ {{.TypeName}}GormOpt = (*txMiddlewaresOption)(nil)
+            var _ {{.TypeName}}GormOpt = (*returningObjOption)(nil)
+            var _ {{.TypeName}}GormOpt = (*transactionOption)(nil)
+        {{- end}}
+    {{- end}}
+    
 {{end}}
 
 

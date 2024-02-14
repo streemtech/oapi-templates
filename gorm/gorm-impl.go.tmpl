@@ -11,11 +11,20 @@
         DeleteValidator *validator.Validate
     }
 
+
+
     {{range .Types}}
         {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            func get{{.TypeName}}GormConfig(opts []{{.TypeName}}GormOpt) *{{.TypeName}}GormConfig {
+                c := &{{.TypeName}}GormConfig{}
+                for _, m := range opts {
+                    m.modify{{.TypeName}}GormConfig(c)
+                }
+                return c
+            }
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
             //Create a new {{.TypeName}}. No data validation is done.
-            func (g *GormImpl)Create{{.TypeName}}(ctx context.Context, data *{{.TypeName}}, middleware ...TXMiddleware) (err error) {
+            func (g *GormImpl)Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}, opts ...{{.TypeName}}GormOpt) (err error) {
                 ctx, span := g.Tracer.Start(ctx, "Create{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -27,6 +36,12 @@
                     }
                 }(span)
 
+                cfg := get{{.TypeName}}GormConfig(opts)
+                middleware := cfg.txMiddlewares
+                req := cfg.transaction
+                if req == nil {
+                    req = g.DB
+                }
 
                 {{if and (and (hasKey $dat "validation" ) (hasKey $dat.validation "create")) (hasKey $dat.validation.create "keys") }}
                     var v *validator.Validate
@@ -51,9 +66,12 @@
                 {{end}}
 
                 // Do gorm request: Create the {{.TypeName}}
-                req := g.DB.WithContext(ctx).
-                    Clauses(clause.Returning{}).
-                    Model({{.TypeName}}{})
+                req = req.WithContext(ctx)
+                if cfg.returningObj != nil {
+                    req = req.Model(cfg.returningObj).Clauses(clause.Returning{})
+                }else {
+                    req = req.Model({{.TypeName}}{})
+                }
                 for _,m := range middleware {
                     req = m(req)
                 }
@@ -65,7 +83,7 @@
                 return nil
             }
             //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
-            func (g *GormImpl)Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (data *{{.TypeName}}, err error) {
+            func (g *GormImpl)Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, opts ...{{.TypeName}}GormOpt) (data *{{.TypeName}}, err error) {
                 ctx, span := g.Tracer.Start(ctx, "Get{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -77,9 +95,16 @@
                     }
                 }(span)
 
+                cfg := get{{.TypeName}}GormConfig(opts)
+                middleware := cfg.txMiddlewares
+                req := cfg.transaction
+                if req == nil {
+                    req = g.DB
+                }
+
                 // Do gorm request: Get the {{.TypeName}}
                 data = new({{.TypeName}})
-                req := g.DB.WithContext(ctx).
+                req = req.WithContext(ctx).
                     Model(&{{.TypeName}}{}).
                     Where(&filter)
                 for _,m := range middleware {
@@ -96,7 +121,7 @@
                 return data, nil
             }
             //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
-            func (g *GormImpl) BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error) {
+            func (g *GormImpl) BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, opts ...{{.TypeName}}GormOpt) (data []*{{.TypeName}}, err error) {
                 ctx, span := g.Tracer.Start(ctx, "BulkGet{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -108,9 +133,16 @@
                     }
                 }(span)
 
+                cfg := get{{.TypeName}}GormConfig(opts)
+                middleware := cfg.txMiddlewares
+                req := cfg.transaction
+                if req == nil {
+                    req = g.DB
+                }
+
                 // Do gorm request: Get the {{.TypeName}}
                 data = make([]*{{.TypeName}}, 0)
-                req := g.DB.WithContext(ctx).
+                req = req.WithContext(ctx).
                     Model(&{{.TypeName}}{}).
                     Where(&filter)
                 for _,m := range middleware {
@@ -139,7 +171,8 @@
             {{if hasKey $dat "batch" -}}
             {{$key := $dat.batch.key}}
             {{$type := $dat.batch.type}}
-            func (g *GormImpl)BatchGet{{.TypeName}}(ctx context.Context, filter []{{$type}}, middleware ...TXMiddleware) (data []*{{.TypeName}}, err error){
+            //BatchGet{{.TypeName}} is a function to allow for using batching queries in data loaders, constructing a single query from multiple filter variables.
+            func (g *GormImpl)BatchGet{{.TypeName}}(ctx context.Context, filter []{{$type}}, opts ...{{.TypeName}}GormOpt) (data []*{{.TypeName}}, err error){
                 ctx, span := g.Tracer.Start(ctx, "BatchGet{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -150,13 +183,21 @@
                         }
                     }
                 }(span)
+
+                cfg := get{{.TypeName}}GormConfig(opts)
+                middleware := cfg.txMiddlewares
+                req := cfg.transaction
+                if req == nil {
+                    req = g.DB
+                }
+
                 if filter == nil || len(filter) <=0 {
                     return nil, pErrors.New("must provide at least one filter value")
                 }
 
                 data = make([]*{{.TypeName}}, 0)
 
-                req := g.DB.WithContext(ctx).
+                req = req.WithContext(ctx).
                     Model(&{{.TypeName}}{})
 
                 for _, v := range filter {
@@ -175,7 +216,7 @@
             }
             {{end -}}
             //Update{{.TypeName}} updates any data matching filter with the data in data, but only for keys matching keys.
-            func (g *GormImpl)Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}, middleware ...TXMiddleware) (err error) {
+            func (g *GormImpl)Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}, opts ...{{.TypeName}}GormOpt) (err error) {
                 ctx, span := g.Tracer.Start(ctx, "Update{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -186,6 +227,14 @@
                         }
                     }
                 }(span)
+
+                cfg := get{{.TypeName}}GormConfig(opts)
+                middleware := cfg.txMiddlewares
+                req := cfg.transaction
+                if req == nil {
+                    req = g.DB
+                }
+
                 {{if and (and (hasKey $dat "validation" ) (hasKey $dat.validation "update")) (hasKey $dat.validation.update "keys") }}
                     var v *validator.Validate
                     if g.UpdateValidator != nil {
@@ -221,9 +270,13 @@
                 }
 
                 // Do gorm request: Update the record where arguments match.
-                req := g.DB.WithContext(ctx).
-                    Model(&{{.TypeName}}{}).
-                    Omit(
+                req = req.WithContext(ctx)
+                if cfg.returningObj != nil {
+                    req = req.Model(cfg.returningObj).Clauses(clause.Returning{})
+                }else {
+                    req = req.Model(&{{.TypeName}}{})
+                }
+                req = req.Omit(
                         {{range get $dat "updateIgnore"}}
                         "{{.}}",
                         {{end}}
@@ -246,7 +299,7 @@
                 return nil
             }
             //Delete{{.TypeName}} deletes all data matching the supplied filter.
-            func (g *GormImpl)Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, middleware ...TXMiddleware) (err error) {
+            func (g *GormImpl)Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, opts ...{{.TypeName}}GormOpt) (err error) {
                 ctx, span := g.Tracer.Start(ctx, "Delete{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
@@ -257,6 +310,13 @@
                         }
                     }
                 }(span)
+
+                cfg := get{{.TypeName}}GormConfig(opts)
+                middleware := cfg.txMiddlewares
+                req := cfg.transaction
+                if req == nil {
+                    req = g.DB
+                }
 
 
                 {{if and (and (hasKey $dat "validation" ) (hasKey $dat.validation "create")) (hasKey $dat.validation.delete "keys") }}
@@ -281,9 +341,14 @@
                     }
                 {{end}}
                 // Do gorm request: Get the {{.TypeName}}
-                req := g.DB.WithContext(ctx).
-                    Model(&{{.TypeName}}{}).
-                    Where(&filter)
+                req = req.WithContext(ctx)
+                if cfg.returningObj != nil {
+                    req = req.Model(cfg.returningObj).Clauses(clause.Returning{})
+                }else {
+                    req = req.Model({{.TypeName}}{})
+                }
+                
+                req = req.Where(&filter)
                 for _,m := range middleware {
                     req = m(req)
                 }
