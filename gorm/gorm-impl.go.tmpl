@@ -207,6 +207,10 @@
                     }))
                 }
 
+                for _,m := range middleware {
+                    req = m(req)
+                }
+
                 err = req.Find(&data).Error
                 if err != nil {
                     return nil, pErrors.Wrap(err, "error batch getting {{.TypeName}} in gorm")
