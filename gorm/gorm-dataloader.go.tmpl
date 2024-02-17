@@ -79,7 +79,7 @@
 {{define "DataloaderStruct"}}
 //Created by gorm-dataloader.go.tmpl/DataloaderStruct
 
-    type gormDataloader struct {
+    type GormDataloader struct {
         g *GormImpl
         GormDataloaderParams GormDataloaderParams
         {{range .Types}}
@@ -126,8 +126,8 @@
             {{end}}
         {{end}}
 
-    func NewGormDataloader(g *GormImpl, params GormDataloaderParams) *gormDataloader{
-        dl := &gormDataloader{
+    func NewGormDataloader(g *GormImpl, params GormDataloaderParams) *GormDataloader{
+        dl := &GormDataloader{
             g: g,
             GormDataloaderParams: params,
         }
@@ -214,13 +214,13 @@
             {{if hasKey $dat "batch" -}}
             {{$key := $dat.batch.key}}
             {{$type := $dat.batch.type}}
-            func (DS *gormDataloader) {{.TypeName}}Clear(ctx context.Context, key {{$type}}) {
+            func (DS *GormDataloader) {{.TypeName}}Clear(ctx context.Context, key {{$type}}) {
                 DS.{{.TypeName}}Dataloader.Clear(ctx, key)
             }
-            func (DS *gormDataloader) {{.TypeName}}ClearAll() {
+            func (DS *GormDataloader) {{.TypeName}}ClearAll() {
                 DS.{{.TypeName}}Dataloader.ClearAll()
             }
-            func (DS *gormDataloader) {{.TypeName}}Load(ctx context.Context, key {{$type}}) dataloader.Thunk[{{.TypeName}}] {
+            func (DS *GormDataloader) {{.TypeName}}Load(ctx context.Context, key {{$type}}) dataloader.Thunk[{{.TypeName}}] {
                 t := DS.{{.TypeName}}Dataloader.Load(ctx, key)
                 if DS.GormDataloaderParams.{{.TypeName}}GormDataloaderParams.DisableAutoErrorClear {
                     return t
@@ -231,7 +231,7 @@
                 }
                 return t
             }
-            func (DS *gormDataloader) {{.TypeName}}LoadMany(ctx context.Context, keys []{{$type}}) dataloader.ThunkMany[{{.TypeName}}] {
+            func (DS *GormDataloader) {{.TypeName}}LoadMany(ctx context.Context, keys []{{$type}}) dataloader.ThunkMany[{{.TypeName}}] {
                 t := DS.{{.TypeName}}Dataloader.LoadMany(ctx, keys)
                 if DS.GormDataloaderParams.{{.TypeName}}GormDataloaderParams.DisableAutoErrorClear {
                     return t
@@ -244,7 +244,7 @@
                 }
                 return t
             }
-            func (DS *gormDataloader) {{.TypeName}}Prime(ctx context.Context, key {{$type}}, value {{.TypeName}}) {
+            func (DS *GormDataloader) {{.TypeName}}Prime(ctx context.Context, key {{$type}}, value {{.TypeName}}) {
                 DS.{{.TypeName}}Dataloader.Prime(ctx, key, value)
             }
             {{end}}
