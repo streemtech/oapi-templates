@@ -141,14 +141,15 @@
                 {{$key := $dat.batch.key}}
                 {{$type := $dat.batch.type}}
                 {{.TypeName}}Func := func(ctx context.Context, in []{{$type}}) []*dataloader.Result[{{.TypeName}}] {
+                    out := make([]*dataloader.Result[{{.TypeName}}], 0,len(in))
                     data, err := dl.g.BatchGet{{.TypeName}}(ctx, in)
-                    out := make([]*dataloader.Result[{{.TypeName}}], 0)
                     if err != nil {
                         for range in {
                             out = append(out, &dataloader.Result[{{.TypeName}}]{
                                 Error: pErrors.Wrap(err,"failed batch request"),
                             })
                         }
+                        return out
                     }
 
                     outMap := make(map[{{$type}}]{{.TypeName}})
