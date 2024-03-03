@@ -28,6 +28,9 @@
                 ctx, span := g.Tracer.Start(ctx, "Create{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
+                    if r := recover(); r != nil {
+                        err = errors.Errorf("panic encountered: %+v", r)
+                    }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
                             span.SetStatus(codes.Error, err.Error())
@@ -87,6 +90,9 @@
                 ctx, span := g.Tracer.Start(ctx, "Get{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
+                    if r := recover(); r != nil {
+                        err = errors.Errorf("panic encountered: %+v", r)
+                    }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
                             span.SetStatus(codes.Error, err.Error())
@@ -125,6 +131,9 @@
                 ctx, span := g.Tracer.Start(ctx, "BulkGet{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
+                    if r := recover(); r != nil {
+                        err = errors.Errorf("panic encountered: %+v", r)
+                    }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
                             span.SetStatus(codes.Error, err.Error())
@@ -176,6 +185,9 @@
                 ctx, span := g.Tracer.Start(ctx, "BatchGet{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
+                    if r := recover(); r != nil {
+                        err = errors.Errorf("panic encountered: %+v", r)
+                    }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
                             span.SetStatus(codes.Error, err.Error())
@@ -224,6 +236,9 @@
                 ctx, span := g.Tracer.Start(ctx, "Update{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
+                    if r := recover(); r != nil {
+                        err = errors.Errorf("panic encountered: %+v", r)
+                    }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
                             span.SetStatus(codes.Error, err.Error())
@@ -307,6 +322,9 @@
                 ctx, span := g.Tracer.Start(ctx, "Delete{{.TypeName}}")
                 defer span.End()
                 defer func(span trace.Span) {
+                    if r := recover(); r != nil {
+                        err = errors.Errorf("panic encountered: %+v", r)
+                    }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
                             span.SetStatus(codes.Error, err.Error())
