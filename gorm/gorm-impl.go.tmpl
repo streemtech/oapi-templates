@@ -73,12 +73,12 @@
                 if cfg.returningObj != nil {
                     req = req.Model(cfg.returningObj).Clauses(clause.Returning{})
                 }else {
-                    req = req.Model({{.TypeName}}{})
+                    req = req.Model(&{{.TypeName}}{})
                 }
                 for _,m := range middleware {
                     req = m(req)
                 }
-                err = req.Create(data).Error
+                err = req.Create(&data).Error
                 // Check for gorm error.
                 if err != nil {
                     return pErrors.Wrap(err, "error creating {{.TypeName}} in gorm")
