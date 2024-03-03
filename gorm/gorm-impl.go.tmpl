@@ -29,7 +29,7 @@
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
-                        err = errors.Errorf("panic encountered: %+v", r)
+                        err = pErrors.Errorf("panic encountered: %+v", r)
                     }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
@@ -91,7 +91,7 @@
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
-                        err = errors.Errorf("panic encountered: %+v", r)
+                        err = pErrors.Errorf("panic encountered: %+v", r)
                     }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
@@ -132,7 +132,7 @@
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
-                        err = errors.Errorf("panic encountered: %+v", r)
+                        err = pErrors.Errorf("panic encountered: %+v", r)
                     }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
@@ -186,7 +186,7 @@
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
-                        err = errors.Errorf("panic encountered: %+v", r)
+                        err = pErrors.Errorf("panic encountered: %+v", r)
                     }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
@@ -237,7 +237,7 @@
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
-                        err = errors.Errorf("panic encountered: %+v", r)
+                        err = pErrors.Errorf("panic encountered: %+v", r)
                     }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
@@ -323,7 +323,7 @@
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
-                        err = errors.Errorf("panic encountered: %+v", r)
+                        err = pErrors.Errorf("panic encountered: %+v", r)
                     }
                     if err != nil {
                         if _, ok := err.(circuit.SimpleBadRequest); !ok {
