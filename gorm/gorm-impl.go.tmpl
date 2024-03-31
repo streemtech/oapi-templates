@@ -70,11 +70,11 @@
 
                 // Do gorm request: Create the {{.TypeName}}
                 req = req.WithContext(ctx)
-                if cfg.returningObj != nil {
-                    req = req.Model(cfg.returningObj).Clauses(clause.Returning{})
-                }else {
-                    req = req.Model(&{{.TypeName}}{})
-                }
+                //if cfg.returningObj != nil {
+                //    req = req.Model(cfg.returningObj).Clauses(clause.Returning{})
+                //}else {
+                req = req.Model(&{{.TypeName}}{})
+                //}
                 for _,m := range middleware {
                     req = m(req)
                 }
@@ -83,6 +83,13 @@
                 if err != nil {
                     return pErrors.Wrap(err, "error creating {{.TypeName}} in gorm")
                 }
+
+                //Set the return object
+                if cfg.returningObj != nil {
+                    dest := cfg.returningObj.(*{{.TypeName}})
+                    *dest = data
+                }
+
                 return nil
             }
             //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
