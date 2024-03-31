@@ -9,7 +9,7 @@
         // As{{ .Method }} returns the union data inside the {{$typeName}} as a {{.}}
         func (t {{$typeName}}) As{{ .Method }}() ({{.}}, error) {
             var body {{.}}
-            err := jsonv2.Unmarshal(t.union, &body)
+            err := json.Unmarshal(t.union, &body)
             return body, err
         }
 
@@ -29,7 +29,7 @@
                     {{end -}}
                 {{end -}}
             {{end -}}
-            b, err := jsonv2.Marshal(v)
+            b, err := json.Marshal(v)
             t.union = b
             return err
         }
@@ -50,7 +50,7 @@
                     {{end -}}
                 {{end -}}
             {{end -}}
-            b, err := jsonv2.Marshal(v)
+            b, err := json.Marshal(v)
             if err != nil {
               return err
             }
@@ -66,7 +66,7 @@
             var discriminator struct {
                 Discriminator string {{$discriminator.JSONTag}}
             }
-            err := jsonv2.Unmarshal(t.union, &discriminator)
+            err := json.Unmarshal(t.union, &discriminator)
             return discriminator.Discriminator, err
         }
 
@@ -96,22 +96,22 @@
             if err != nil {
                 return nil, err
             }
-            object := make(map[string]json.RawMessage)
+            object := make(map[string]jsonv1.RawMessage)
             if t.union != nil {
-              err = jsonv2.Unmarshal(b, &object)
+              err = json.Unmarshal(b, &object)
               if err != nil {
                 return nil, err
               }
             }
             {{range .Schema.Properties}}
             {{if not .Required}}if t.{{.GoFieldName}} != nil { {{end}}
-                object["{{.JsonFieldName}}"], err = jsonv2.Marshal(t.{{.GoFieldName}})
+                object["{{.JsonFieldName}}"], err = json.Marshal(t.{{.GoFieldName}})
                 if err != nil {
                     return nil, fmt.Errorf("error marshaling '{{.JsonFieldName}}': %w", err)
                 }
             {{if not .Required}} }{{end}}
             {{end -}}
-            b, err = jsonv2.Marshal(object)
+            b, err = json.Marshal(object)
         {{end -}}
         return b, err
     }
@@ -122,14 +122,14 @@
             if err != nil {
                 return err
             }
-            object := make(map[string]json.RawMessage)
-            err = jsonv2.Unmarshal(b, &object)
+            object := make(map[string]jsonv1.RawMessage)
+            err = json.Unmarshal(b, &object)
             if err != nil {
                 return err
             }
             {{range .Schema.Properties}}
                 if raw, found := object["{{.JsonFieldName}}"]; found {
-                    err = jsonv2.Unmarshal(raw, &t.{{.GoFieldName}})
+                    err = json.Unmarshal(raw, &t.{{.GoFieldName}})
                     if err != nil {
                         return fmt.Errorf("error reading '{{.JsonFieldName}}': %w", err)
                     }

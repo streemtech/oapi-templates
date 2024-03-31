@@ -11,7 +11,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/base64"
-    "encoding/json"
+    jsonv1 "encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -25,7 +25,7 @@ import (
 	"time"
 	"log/slog"
 
-	jsonv2 "github.com/go-json-experiment/json"
+	json "github.com/go-json-experiment/json"
     "github.com/go-json-experiment/json/jsontext"
 	"github.com/oapi-codegen/runtime"
 	strictecho "github.com/oapi-codegen/runtime/strictmiddleware/echo"

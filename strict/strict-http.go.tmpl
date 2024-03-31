@@ -52,7 +52,7 @@ type strictHandler struct {
             {{if $multipleBodies}}if strings.HasPrefix(r.Header.Get("Content-Type"), "{{.ContentType}}") { {{end}}
                 {{if .IsJSON }}
                     var body {{$opid}}{{.NameTag}}RequestBody
-                    if err := jsonv2.UnmarshalRead(r.Body, &body); err != nil {
+                    if err := json.UnmarshalRead(r.Body, &body); err != nil {
                         sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
                         return
                     }
