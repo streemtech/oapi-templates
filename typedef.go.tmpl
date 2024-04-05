@@ -2,7 +2,10 @@
 
 {{range .Types}}
 {{ if .Schema.Description }}{{ toGoComment .Schema.Description .TypeName  }}{{ else }}// {{.TypeName}} defines model for {{.JsonName}}.{{ end }}
-type {{.TypeName}} {{if .IsAlias }}={{end}} {{.Schema.TypeDecl}}
+type {{.TypeName}} {{if .IsAlias }}={{end}} {{if gt (len .Schema.UnionElements) 0}} struct {
+	union jsonv1.RawMessage
+}{{else}}{{.Schema.TypeDecl}}{{end}}
+
 {{end}}
 
 {{template "gorm" .}}
