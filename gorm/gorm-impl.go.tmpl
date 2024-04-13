@@ -315,7 +315,11 @@
                 for _,m := range middleware {
                     req = m(req)
                 }
-                err = req.Updates(&data).Error
+                if cfg.updateOverride != nil {
+                    err = req.Updates(cfg.updateOverride).Error
+                }else {
+                    err = req.Updates(&data).Error
+                }
 
                 // Check for gorm error.
                 if err != nil {

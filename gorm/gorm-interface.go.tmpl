@@ -33,6 +33,9 @@
     type transactionOption struct {
         transaction   *gorm.DB
     }
+    type updateOverrideOption struct {
+        value  any
+    }
 
     //WithTxMiddlewares Allows the user to set and apply a series of middlewares that are added to the request.
     func WithTxMiddlewares(txMiddlewares ...TXMiddleware) *txMiddlewaresOption {
@@ -46,6 +49,10 @@
     func WithTransaction(tx *gorm.DB) *transactionOption {
         return &transactionOption{transaction: tx}
     }
+    //WithUpdateOverride Allows the user to pass in a value to use in the updates clause that is different from the normal update value.
+    func WithUpdateOverride(value any) *updateOverrideOption {
+        return &updateOverrideOption{value: value}
+    }
     {{range .Types -}}
         {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
             func (opt *txMiddlewaresOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
@@ -56,6 +63,9 @@
             }
             func (opt *transactionOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
                 conf.transaction = opt.transaction
+            }
+            func (opt *updateOverrideOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
+                conf.updateOverride = opt.value
             }
         {{- end }}
     {{- end}}
@@ -70,10 +80,12 @@
                 txMiddlewares []TXMiddleware
                 returningObj  any
                 transaction   *gorm.DB
+                updateOverride any
             }
             var _ {{.TypeName}}GormOpt = (*txMiddlewaresOption)(nil)
             var _ {{.TypeName}}GormOpt = (*returningObjOption)(nil)
             var _ {{.TypeName}}GormOpt = (*transactionOption)(nil)
+            var _ {{.TypeName}}GormOpt = (*updateOverrideOption)(nil)
         {{- end}}
     {{- end}}
     
