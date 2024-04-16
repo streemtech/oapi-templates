@@ -101,7 +101,7 @@ func (c *{{ $clientTypeName }}) {{$opid}}{{if .HasBody}}WithBody{{end}}(ctx cont
         return nil, err
     }
     req = req.WithContext(ctx)
-    if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+    if err = c.applyEditors(ctx, req, reqEditors); err != nil {
         return nil, err
     }
     return c.Client.Do(req)
@@ -115,7 +115,7 @@ func (c *{{ $clientTypeName }}) {{$opid}}{{.Suffix}}(ctx context.Context{{genPar
         return nil, err
     }
     req = req.WithContext(ctx)
-    if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+    if err = c.applyEditors(ctx, req, reqEditors); err != nil {
         return nil, err
     }
     return c.Client.Do(req)

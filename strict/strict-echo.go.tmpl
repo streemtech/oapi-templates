@@ -85,7 +85,7 @@ func WithTracer(tracer trace.Tracer) StrictOption {
             {{if $multipleBodies}}if strings.HasPrefix(ctx.Request().Header.Get("Content-Type"), "{{.ContentType}}") { {{end}}
                 {{if .IsJSON -}}
                     var body {{$opid}}{{.NameTag}}RequestBody
-                    if err := json.UnmarshalRead(ctx.Request().Body, &body); err != nil {
+                    if err = json.UnmarshalRead(ctx.Request().Body, &body); err != nil {
                         log.Err(fmt.Sprintf("failed to unmarshal body in request: %s", err.Error()), err)
                         return err
                     }
