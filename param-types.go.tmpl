@@ -4,5 +4,21 @@
 {{range .TypeDefinitions}}
 // {{.TypeName}} defines parameters for {{$opid}}.
 type {{.TypeName}} {{if .IsAlias}}={{end}} {{.Schema.TypeDecl}}
+
+{{$t := .TypeName}}
+{{range .Schema.Properties -}}
+func (datatype {{$t}}) Get{{camelCase .JsonFieldName}}() {{if gt (len .Schema.RefType) 0 }}{{.Schema.RefType}}{{else}}{{.Schema.GoType}}{{end}} {
+{{- if .Required}}
+    return datatype.{{camelCase .JsonFieldName}}
+{{- else}}
+    if datatype.{{camelCase .JsonFieldName}} == nil {
+        var empty {{.Schema.GoType}}
+        return empty 
+    }
+	return *datatype.{{camelCase .JsonFieldName}}
+{{end -}}
+}
 {{end}}
+{{end}}
+{{/* toJson . */}}
 {{end}}
