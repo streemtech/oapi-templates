@@ -8,11 +8,11 @@ type {{.TypeName}} {{if .IsAlias}}={{end}} {{.Schema.TypeDecl}}
 {{$t := .TypeName}}
 {{range .Schema.Properties -}}
 func (datatype {{$t}}) Get{{.GoFieldName}}() {{.Schema.TypeDecl}} {
-{{- if .Required}}
+{{- if and .Required (not .Nullable)}}
     return datatype.{{.GoFieldName}}
 {{- else}}
     if datatype.{{.GoFieldName}} == nil {
-        var empty {{.Schema.GoType}}
+        var empty {{.Schema.TypeDecl}}
         return empty 
     }
 	return *datatype.{{.GoFieldName}}
