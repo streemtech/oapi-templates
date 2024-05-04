@@ -38,6 +38,7 @@
     type ItemWithTimeout[V any] struct {
         spoil time.Time
         data  dataloader.Thunk[V]
+        link trace.Link
     }
     func (c CacheImpl[K, V]) Get(ctx context.Context, key K) (dataloader.Thunk[V], bool) {
         c.mux.Lock()
@@ -51,6 +52,7 @@
                 c.backing.Remove(key)
                 return nil, false
             }
+            trace.SpanFromContext(ctx).AddLink(dat.link)
             return dat.data, ok
         }
         return nil, false
@@ -61,6 +63,7 @@
         c.backing.Add(key, ItemWithTimeout[V]{
             spoil: time.Now().Add(c.timeout),
             data:  thunk,
+            link: trace.LinkFromContext(ctx),
         })
     }
     func (c CacheImpl[K, V]) Delete(ctx context.Context, key K) bool {
