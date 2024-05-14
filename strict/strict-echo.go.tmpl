@@ -50,6 +50,16 @@ func WithTracer(tracer trace.Tracer) StrictOption {
                 }
                 span.End()
             }(span)
+
+        {{if gt (len .PathParams) 0 -}}
+            
+            span.SetAttributes(
+                {{range .PathParams -}}
+                attribute.String("path.{{.GoName}}", ctx.Param("{{.ParamName}}")),
+                {{end -}}
+            )
+                
+        {{end}}
         }
 
         //set logger context.
@@ -70,6 +80,7 @@ func WithTracer(tracer trace.Tracer) StrictOption {
                 {{end -}}
             ),
         )
+
         {{end}}
 
         {{if .RequiresParamObject -}}
@@ -85,8 +96,17 @@ func WithTracer(tracer trace.Tracer) StrictOption {
             {{if $multipleBodies}}if strings.HasPrefix(ctx.Request().Header.Get("Content-Type"), "{{.ContentType}}") { {{end}}
                 {{if .IsJSON -}}
                     var body {{$opid}}{{.NameTag}}RequestBody
-                    if err = json.UnmarshalRead(ctx.Request().Body, &body); err != nil {
-                        log.Err(fmt.Sprintf("failed to unmarshal body in request: %s", err.Error()), err)
+                    b := &bytes.Buffer{}
+                    b.ReadFrom(ctx.Request().Body)
+                    if err = json.UnmarshalRead(b, &body); err != nil {
+                        log.Err("failed to unmarshal body in request", 
+                            err, 
+                            slog.String("request.body", b.String()),
+                        )
+                        if sh.tracer != nil {
+                            trace.SpanFromContext(ctx.Request().Context()).
+                                SetAttributes(attribute.String("request.body", b.String()))
+                        }
                         return err
                     }
                     request.{{if $multipleBodies}}{{.NameTag}}{{end}}Body = &body
