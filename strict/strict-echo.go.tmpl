@@ -101,7 +101,7 @@ func WithTracer(tracer trace.Tracer) StrictOption {
                     _,err = b.ReadFrom(ctx.Request().Body)
                     if err != nil {
                         log.Err("failed to read body in request", err)
-                        return pErrors.Wrap(err, "failed to read body in request")
+                        return echo.ErrBadRequest
                     }
 
                     //Marshal body into json
@@ -114,7 +114,7 @@ func WithTracer(tracer trace.Tracer) StrictOption {
                             trace.SpanFromContext(ctx.Request().Context()).
                                 SetAttributes(attribute.String("request.body", b.String()))
                         }
-                        return err
+                        return echo.ErrBadRequest
                     }
                     request.{{if $multipleBodies}}{{.NameTag}}{{end}}Body = &body
                 {{else if eq .NameTag "Formdata" -}}
