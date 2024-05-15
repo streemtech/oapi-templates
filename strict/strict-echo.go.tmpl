@@ -95,10 +95,17 @@ func WithTracer(tracer trace.Tracer) StrictOption {
         {{range .Bodies -}}
             {{if $multipleBodies}}if strings.HasPrefix(ctx.Request().Header.Get("Content-Type"), "{{.ContentType}}") { {{end}}
                 {{if .IsJSON -}}
+                    //read in body of request
                     var body {{$opid}}{{.NameTag}}RequestBody
                     b := &bytes.Buffer{}
-                    b.ReadFrom(ctx.Request().Body)
-                    if err = json.UnmarshalRead(b, &body); err != nil {
+                    _,err = b.ReadFrom(ctx.Request().Body)
+                    if err != nil {
+                        log.Err("failed to read body in request", err)
+                        return pErrors.Wrap(err, "failed to read body in request")
+                    }
+
+                    //Marshal body into json
+                    if err = json.Unmarshal(b.Bytes(), &body); err != nil {
                         log.Err("failed to unmarshal body in request", 
                             err, 
                             slog.String("request.body", b.String()),
