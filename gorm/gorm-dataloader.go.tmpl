@@ -4,79 +4,11 @@
 //the gorm queries. They are built in those groups
 {{define "dataloader"}}
 
-    {{template "DataloaderCache" .}}
     {{template "DataloaderStruct" .}}
     {{template "DataloaderDataloaders" .}}
 
 {{end}}
 
-{{define "DataloaderCache"}}
-//Created by gorm-dataloader.go.tmpl/DataloaderCache
-
-    //Generated with gorm/gorm-dataloaders.go.tmpl
-
-    //create the tool that creates a timeout-ing cache compatable with dataloaders.
-    func NewTimeoutCache[K comparable, V any](size int, timeout time.Duration) dataloader.Cache[K, V] {
-        if size <= 0 {
-            size = 1000
-        }
-        if timeout <= 0 {
-            timeout = time.Minute
-        }
-        backing, _ := lru.New[K, ItemWithTimeout[V]](size)
-        return CacheImpl[K, V]{
-            backing: backing,
-            timeout: timeout,
-            mux:     &sync.Mutex{},
-        }
-    }
-    type CacheImpl[K comparable, V any] struct {
-        timeout time.Duration
-        backing *lru.Cache[K, ItemWithTimeout[V]]
-        mux     *sync.Mutex
-    }
-    type ItemWithTimeout[V any] struct {
-        spoil time.Time
-        data  dataloader.Thunk[V]
-        link trace.Link
-    }
-    func (c CacheImpl[K, V]) Get(ctx context.Context, key K) (dataloader.Thunk[V], bool) {
-        c.mux.Lock()
-        defer c.mux.Unlock()
-        if c.backing.Contains(key) {
-            dat, ok := c.backing.Get(key)
-            if !ok {
-                return nil, false
-            }
-            if time.Now().After(dat.spoil) {
-                c.backing.Remove(key)
-                return nil, false
-            }
-            trace.SpanFromContext(ctx).AddLink(dat.link)
-            return dat.data, ok
-        }
-        return nil, false
-    }
-    func (c CacheImpl[K, V]) Set(ctx context.Context, key K, thunk dataloader.Thunk[V]) {
-        c.mux.Lock()
-        defer c.mux.Unlock()
-        c.backing.Add(key, ItemWithTimeout[V]{
-            spoil: time.Now().Add(c.timeout),
-            data:  thunk,
-            link: trace.LinkFromContext(ctx),
-        })
-    }
-    func (c CacheImpl[K, V]) Delete(ctx context.Context, key K) bool {
-        c.mux.Lock()
-        defer c.mux.Unlock()
-        return c.backing.Remove(key)
-    }
-    func (c CacheImpl[K, V]) Clear() {
-        c.mux.Lock()
-        defer c.mux.Unlock()
-        c.backing.Purge()
-    }
-{{end}}
 
 
 {{define "DataloaderStruct"}}
@@ -191,7 +123,7 @@
                 }
                 
 
-                {{.TypeName}}Cache := NewTimeoutCache[{{$type}}, {{.TypeName}}](params.{{.TypeName}}GormDataloaderParams.CacheCount, params.{{.TypeName}}GormDataloaderParams.CacheTime)
+                {{.TypeName}}Cache := dataloaderutils.NewTimeoutCache[{{$type}}, {{.TypeName}}](params.{{.TypeName}}GormDataloaderParams.CacheCount, params.{{.TypeName}}GormDataloaderParams.CacheTime)
                 dl.{{.TypeName}}Dataloader = dataloader.NewBatchedLoader(
                     {{.TypeName}}Func,
                     dataloader.WithCache({{.TypeName}}Cache),
