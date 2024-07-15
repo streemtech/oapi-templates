@@ -10,8 +10,19 @@ const (
 
 // Defines values for {{$Enum.TypeName}}.
 const (
+
+{{$idx := 0}}
+{{$enumDescriptors := get (fromJson (toJson $Enum.Schema.OAPISchema)) "x-enum-descriptions" }}
+{{$enumVals := get (fromJson (toJson $Enum.Schema.OAPISchema)) "enum" }}
 {{range $name, $value := $Enum.GetValues}}
-  {{$name}} {{$Enum.TypeName}} = {{$Enum.ValueWrapper}}{{$value}}{{$Enum.ValueWrapper -}}
+    {{if eq (len $enumVals) (len $enumDescriptors)}}
+        {{range $enumIdx, $enumVal := $enumVals -}}
+            {{if eq $enumVal $value -}}
+            //{{index $enumDescriptors $enumIdx -}}
+            {{end -}}
+        {{end -}}
+    {{end}}
+    {{$name}} {{$Enum.TypeName}} = {{$Enum.ValueWrapper}}{{$value}}{{$Enum.ValueWrapper -}}{{- $idx = (add1 $idx) -}}
 {{end}}
 )
 
