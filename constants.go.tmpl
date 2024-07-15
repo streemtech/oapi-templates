@@ -7,10 +7,44 @@ const (
 )
 {{end}}
 {{range $Enum := .EnumDefinitions}}
+
 // Defines values for {{$Enum.TypeName}}.
 const (
 {{range $name, $value := $Enum.GetValues}}
   {{$name}} {{$Enum.TypeName}} = {{$Enum.ValueWrapper}}{{$value}}{{$Enum.ValueWrapper -}}
 {{end}}
 )
+
+//Is{{$Enum.TypeName}} returns true if the user passes in a value that is contained in the
+//list of enums of {{$Enum.TypeName}}.
+func Is{{$Enum.TypeName}}(val {{$Enum.TypeName}}) bool {
+    switch val {
+    {{range $name, $value := $Enum.GetValues -}}
+        case {{$name}}:
+            return true
+    {{end -}}
+    default: 
+        return false
+    }
+}
+
+//{{$Enum.TypeName}}EnumMap returns a map of all of the enum values
+var {{$Enum.TypeName}}EnumMap = map[{{$Enum.TypeName}}]{{$Enum.TypeName}}{
+    {{range $name, $value := $Enum.GetValues -}}
+        {{$name}}: {{$name}},
+    {{end}}
+    }
+
+{{end}}
+
+
+{{- if gt (len .EnumDefinitions) 0 }}
+    func RegisterEnumValidators(v *validator.Validate) {
+        {{range $Enum := .EnumDefinitions}}
+            v.RegisterValidation("isValid{{$Enum.TypeName}}", func(sl validator.FieldLevel) bool {
+                data := sl.Field().Interface().({{$Enum.TypeName}})
+                return data == "" || Is{{$Enum.TypeName}}(data) 
+            }, false)
+        {{end}}
+    }
 {{end}}
