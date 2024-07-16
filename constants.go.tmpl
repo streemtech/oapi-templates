@@ -54,7 +54,8 @@ var {{$Enum.TypeName}}EnumMap = map[{{$Enum.TypeName}}]{{$Enum.TypeName}}{
         {{range $Enum := .EnumDefinitions}}
             v.RegisterValidation("isValid{{$Enum.TypeName}}", func(sl validator.FieldLevel) bool {
                 data := sl.Field().Interface().({{$Enum.TypeName}})
-                return data == "" || Is{{$Enum.TypeName}}(data) 
+                var empty {{$Enum.TypeName}}
+                return data == empty || Is{{$Enum.TypeName}}(data) 
             }, false)
         {{end}}
     }
