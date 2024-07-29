@@ -8,7 +8,7 @@
 //Generated with gorm/gorm-interface.go.tmpl
     type GormInterface interface {
     {{range .Types}}
-        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+        {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
             //Generate gorm stuff for {{.TypeName}}
             Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}, middleware ...{{.TypeName}}GormOpt) (err error)
@@ -54,7 +54,7 @@
         return &updateOverrideOption{value: value}
     }
     {{range .Types -}}
-        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+        {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
             func (opt *txMiddlewaresOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
                 conf.txMiddlewares = opt.txMiddlewares
             }
@@ -71,7 +71,7 @@
     {{- end}}
 
     {{range .Types -}}
-        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+        {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
             //{{.TypeName}} Gorm Options
             type {{.TypeName}}GormOpt interface {
                 modify{{.TypeName}}GormConfig(*{{.TypeName}}GormConfig)

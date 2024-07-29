@@ -19,7 +19,7 @@
         GormDataloaderParams GormDataloaderParams
         {{range .Types}}
 
-            {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
                 {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
                 {{if hasKey $dat "batch" -}}
 
@@ -34,7 +34,7 @@
 
     type GormDataloaderParams struct {
         {{range .Types}}
-            {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
                 {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
                 {{if hasKey $dat "batch" -}}
 
@@ -46,7 +46,7 @@
     }
 
     {{range .Types}}
-            {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
                 {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
                 {{if hasKey $dat "batch" -}}
 
@@ -69,7 +69,7 @@
 
         {{range .Types}}
 
-            {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+            {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
                 {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
                 {{if hasKey $dat "batch" -}}
 
@@ -145,7 +145,7 @@
 //Created by gorm-dataloader.go.tmpl/DataloaderDataloaders
 
     {{range .Types}}
-        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+        {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
             {{if hasKey $dat "batch" -}}
             {{$key := $dat.batch.key}}

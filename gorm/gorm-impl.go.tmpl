@@ -14,7 +14,7 @@
 
 
     {{range .Types}}
-        {{if and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")}}
+        {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
             func get{{.TypeName}}GormConfig(opts []{{.TypeName}}GormOpt) *{{.TypeName}}GormConfig {
                 c := &{{.TypeName}}GormConfig{}
                 for _, m := range opts {
