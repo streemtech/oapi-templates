@@ -25,7 +25,12 @@
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
             //Create a new {{.TypeName}}. No data validation is done.
             func (g *GormImpl)Create{{.TypeName}}(ctx context.Context, data {{.TypeName}}, opts ...{{.TypeName}}GormOpt) (err error) {
-                ctx, span := g.Tracer.Start(ctx, "Create{{.TypeName}}")
+                cfg := get{{.TypeName}}GormConfig(opts)
+                spanName := "Create{{.TypeName}}"
+                if cfg.overrideSpanName != "" {
+                    spanName = cfg.overrideSpanName
+                }
+                ctx, span := g.Tracer.Start(ctx, spanName)
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
@@ -39,7 +44,6 @@
                     }
                 }(span)
 
-                cfg := get{{.TypeName}}GormConfig(opts)
                 middleware := cfg.txMiddlewares
                 req := cfg.transaction
                 if req == nil {
@@ -78,7 +82,13 @@
                 for _,m := range middleware {
                     req = m(req)
                 }
-                err = req.Create(&data).Error
+                
+                //Apply closerFunc
+                if cfg.closerFunction != nil {
+                    err = cfg.closerFunction(req).Error
+                }else {
+                    err = req.Create(&data).Error
+                }
                 // Check for gorm error.
                 if err != nil {
                     return pErrors.Wrap(err, "error creating {{.TypeName}} in gorm")
@@ -94,7 +104,14 @@
             }
             //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
             func (g *GormImpl)Get{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, opts ...{{.TypeName}}GormOpt) (data *{{.TypeName}}, err error) {
-                ctx, span := g.Tracer.Start(ctx, "Get{{.TypeName}}")
+                cfg := get{{.TypeName}}GormConfig(opts)
+
+                spanName := "Get{{.TypeName}}"
+                if cfg.overrideSpanName != "" {
+                    spanName = cfg.overrideSpanName
+                }
+                ctx, span := g.Tracer.Start(ctx, spanName)
+
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
@@ -108,7 +125,6 @@
                     }
                 }(span)
 
-                cfg := get{{.TypeName}}GormConfig(opts)
                 middleware := cfg.txMiddlewares
                 req := cfg.transaction
                 if req == nil {
@@ -123,7 +139,12 @@
                 for _,m := range middleware {
                     req = m(req)
                 }
-                err = req.First(data).Error
+                //Apply closerFunc
+                if cfg.closerFunction != nil {
+                    err = cfg.closerFunction(req).Error
+                }else {
+                    err = req.First(&data).Error
+                }
                 // Check for gorm error.
                 if err != nil {
                     if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -135,7 +156,14 @@
             }
             //Get{{.TypeName}} gets the first data that matches. If no match is found, returns nil, nil
             func (g *GormImpl) BulkGet{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, limit int, offset int, orderBy string, opts ...{{.TypeName}}GormOpt) (data []*{{.TypeName}}, err error) {
-                ctx, span := g.Tracer.Start(ctx, "BulkGet{{.TypeName}}")
+                cfg := get{{.TypeName}}GormConfig(opts)
+
+                spanName := "BulkGet{{.TypeName}}"
+                if cfg.overrideSpanName != "" {
+                    spanName = cfg.overrideSpanName
+                }
+                ctx, span := g.Tracer.Start(ctx, spanName)
+
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
@@ -149,7 +177,6 @@
                     }
                 }(span)
 
-                cfg := get{{.TypeName}}GormConfig(opts)
                 middleware := cfg.txMiddlewares
                 req := cfg.transaction
                 if req == nil {
@@ -173,7 +200,13 @@
                 if orderBy != "" {
                     req = req.Order(orderBy)
                 }
-                err = req.Find(&data).Error
+
+                //Apply closerFunc
+                if cfg.closerFunction != nil {
+                    err = cfg.closerFunction(req).Error
+                }else {
+                    err = req.Find(&data).Error
+                }
 
                 // Check for gorm error.
                 if err != nil {
@@ -189,7 +222,14 @@
             {{$type := $dat.batch.type}}
             //BatchGet{{.TypeName}} is a function to allow for using batching queries in data loaders, constructing a single query from multiple filter variables.
             func (g *GormImpl)BatchGet{{.TypeName}}(ctx context.Context, filter []{{$type}}, opts ...{{.TypeName}}GormOpt) (data []*{{.TypeName}}, err error){
-                ctx, span := g.Tracer.Start(ctx, "BatchGet{{.TypeName}}")
+                cfg := get{{.TypeName}}GormConfig(opts)
+
+                spanName := "BatchGet{{.TypeName}}"
+                if cfg.overrideSpanName != "" {
+                    spanName = cfg.overrideSpanName
+                }
+                ctx, span := g.Tracer.Start(ctx, spanName)
+
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
@@ -203,7 +243,6 @@
                     }
                 }(span)
 
-                cfg := get{{.TypeName}}GormConfig(opts)
                 middleware := cfg.txMiddlewares
                 req := cfg.transaction
                 if req == nil {
@@ -230,7 +269,13 @@
                     req = m(req)
                 }
 
-                err = req.Find(&data).Error
+                //Apply closerFunc
+                if cfg.closerFunction != nil {
+                    err = cfg.closerFunction(req).Error
+                }else {
+                    err = req.Find(&data).Error
+                }
+
                 if err != nil {
                     return nil, pErrors.Wrap(err, "error batch getting {{.TypeName}} in gorm")
                 }
@@ -240,7 +285,14 @@
             {{end -}}
             //Update{{.TypeName}} updates any data matching filter with the data in data, but only for keys matching keys.
             func (g *GormImpl)Update{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, keys []string, data {{.TypeName}}, opts ...{{.TypeName}}GormOpt) (err error) {
-                ctx, span := g.Tracer.Start(ctx, "Update{{.TypeName}}")
+                cfg := get{{.TypeName}}GormConfig(opts)
+
+                spanName := "Update{{.TypeName}}"
+                if cfg.overrideSpanName != "" {
+                    spanName = cfg.overrideSpanName
+                }
+                ctx, span := g.Tracer.Start(ctx, spanName)
+
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
@@ -254,7 +306,6 @@
                     }
                 }(span)
 
-                cfg := get{{.TypeName}}GormConfig(opts)
                 middleware := cfg.txMiddlewares
                 req := cfg.transaction
                 if req == nil {
@@ -315,11 +366,19 @@
                 for _,m := range middleware {
                     req = m(req)
                 }
-                if cfg.updateOverride != nil {
-                    err = req.Updates(cfg.updateOverride).Error
+
+
+                //Apply closerFunc
+                if cfg.closerFunction != nil {
+                    err = cfg.closerFunction(req).Error
                 }else {
-                    err = req.Updates(&data).Error
+                    if cfg.updateOverride != nil {
+                        err = req.Updates(cfg.updateOverride).Error
+                    }else {
+                        err = req.Updates(&data).Error
+                    }
                 }
+
 
                 // Check for gorm error.
                 if err != nil {
@@ -330,7 +389,14 @@
             }
             //Delete{{.TypeName}} deletes all data matching the supplied filter.
             func (g *GormImpl)Delete{{.TypeName}}(ctx context.Context, filter {{.TypeName}}, opts ...{{.TypeName}}GormOpt) (err error) {
-                ctx, span := g.Tracer.Start(ctx, "Delete{{.TypeName}}")
+                cfg := get{{.TypeName}}GormConfig(opts)
+
+                spanName := "Delete{{.TypeName}}"
+                if cfg.overrideSpanName != "" {
+                    spanName = cfg.overrideSpanName
+                }
+                ctx, span := g.Tracer.Start(ctx, spanName)
+
                 defer span.End()
                 defer func(span trace.Span) {
                     if r := recover(); r != nil {
@@ -344,7 +410,6 @@
                     }
                 }(span)
 
-                cfg := get{{.TypeName}}GormConfig(opts)
                 middleware := cfg.txMiddlewares
                 req := cfg.transaction
                 if req == nil {

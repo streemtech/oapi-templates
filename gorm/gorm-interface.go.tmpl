@@ -36,6 +36,12 @@
     type updateOverrideOption struct {
         value  any
     }
+    type overrideSpanNameOption struct {
+        name  string
+    }
+    type closerFunctionOption struct {
+        function TXMiddleware
+    }
 
     //WithTxMiddlewares Allows the user to set and apply a series of middlewares that are added to the request.
     func WithTxMiddlewares(txMiddlewares ...TXMiddleware) *txMiddlewaresOption {
@@ -50,8 +56,20 @@
         return &transactionOption{transaction: tx}
     }
     //WithUpdateOverride Allows the user to pass in a value to use in the updates clause that is different from the normal update value.
+    //
+    //Deprecated: WithUpdateOverride exists for compatability. 
+    //Use WithCloserFunc and a dedicated call to .Update() instead as that will have type safety.
     func WithUpdateOverride(value any) *updateOverrideOption {
         return &updateOverrideOption{value: value}
+    }
+    //WithOverrideSpanNameOption Allows the user to pass in a custom span name that can be used to identify the request in the open telemetry traceing.
+    func WithOverrideSpanNameOption(name string) *overrideSpanNameOption {
+        return &overrideSpanNameOption{name: name}
+    }
+    //WithCloserFunction Allows the user to pass in a function that will be called instead of the expected "closing" function.
+    //For example, this allows the user to specify a Count function instead of the normal .Find().
+    func WithCloserFunction(function TXMiddleware) *closerFunctionOption {
+        return &closerFunctionOption{function: function}
     }
     {{range .Types -}}
         {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
@@ -67,6 +85,12 @@
             func (opt *updateOverrideOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
                 conf.updateOverride = opt.value
             }
+            func (opt *overrideSpanNameOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
+                conf.overrideSpanName = opt.name
+            }
+            func (opt *closerFunctionOption) modify{{.TypeName}}GormConfig(conf *{{.TypeName}}GormConfig){
+                conf.closerFunction = opt.function
+            }
         {{- end }}
     {{- end}}
 
@@ -81,6 +105,8 @@
                 returningObj  any
                 transaction   *gorm.DB
                 updateOverride any
+                overrideSpanName string
+                closerFunction TXMiddleware
             }
             var _ {{.TypeName}}GormOpt = (*txMiddlewaresOption)(nil)
             var _ {{.TypeName}}GormOpt = (*returningObjOption)(nil)
