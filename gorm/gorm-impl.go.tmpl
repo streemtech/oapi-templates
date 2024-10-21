@@ -11,6 +11,10 @@
         DeleteValidator *validator.Validate
     }
 
+func (g *GormImpl)Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) (err error){
+    return g.DB.Transaction(fc, opts...)
+}
+
 
 
     {{range .Types}}

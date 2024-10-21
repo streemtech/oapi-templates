@@ -7,6 +7,9 @@
     type TXMiddleware func (in *gorm.DB) (out *gorm.DB)
 //Generated with gorm/gorm-interface.go.tmpl
     type GormInterface interface {
+    //Transaction allows initiating a transaction from the root database object
+    Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) (err error)
+
     {{range .Types}}
         {{if and ( and (ne nil .Schema.OAPISchema) (hasKey .Schema.OAPISchema.Extensions "x-oapi-gorm")) ( not .Schema.DefineViaAlias ) }}
             {{$dat := get .Schema.OAPISchema.Extensions "x-oapi-gorm"}}
