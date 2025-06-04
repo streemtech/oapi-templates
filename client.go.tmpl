@@ -160,8 +160,9 @@ func New{{$opid}}Request{{.Suffix}}(server string{{genParamArgs $pathParams}}{{i
 func New{{$opid}}Request{{if .HasBody}}WithBody{{end}}(server string{{genParamArgs $pathParams}}{{if $hasParams}}, params *{{$opid}}Params{{end}}{{if .HasBody}}, contentType string, body io.Reader{{end}}) (*http.Request, error) {
     var err error
     var queryFrag string
+    var parsed url.Values
     if false {
-		fmt.Println(queryFrag)
+		fmt.Println(queryFrag, parsed)
 	}
 {{range $paramIdx, $param := .PathParams}}
     var pathParam{{$paramIdx}} string
@@ -217,7 +218,7 @@ func New{{$opid}}Request{{if .HasBody}}WithBody{{end}}(server string{{genParamAr
             {{if .IsStyled}}
             if queryFrag, err = runtime.StyleParamWithLocation("{{.Style}}", {{.Explode}}, "{{.ParamName}}", runtime.ParamLocationQuery, {{if not .Required}}*{{end}}params.{{.GoName}}); err != nil {
                 return nil, err
-            } else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+            } else if parsed, err = url.ParseQuery(queryFrag); err != nil {
                return nil, err
             } else {
                for k, v := range parsed {
