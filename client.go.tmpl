@@ -160,6 +160,9 @@ func New{{$opid}}Request{{.Suffix}}(server string{{genParamArgs $pathParams}}{{i
 func New{{$opid}}Request{{if .HasBody}}WithBody{{end}}(server string{{genParamArgs $pathParams}}{{if $hasParams}}, params *{{$opid}}Params{{end}}{{if .HasBody}}, contentType string, body io.Reader{{end}}) (*http.Request, error) {
     var err error
     var queryFrag string
+    if false {
+		fmt.Println(queryFrag)
+	}
 {{range $paramIdx, $param := .PathParams}}
     var pathParam{{$paramIdx}} string
     {{if .IsPassThrough}}
